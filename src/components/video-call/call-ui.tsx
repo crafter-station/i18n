@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+
 import {
   useDaily,
   useDailyEvent,
@@ -9,11 +10,11 @@ import {
 } from "@daily-co/daily-react";
 import { Loader2 } from "lucide-react";
 
-import type { VideoCallProps } from "./types";
+import { CallControls } from "./call-controls";
 import { useTranscription } from "./hooks/use-transcription";
 import { ParticipantTile } from "./participant-tile";
 import { TranscriptPanel } from "./transcript-panel";
-import { CallControls } from "./call-controls";
+import type { VideoCallProps } from "./types";
 
 export function CallUI({
   roomUrl,
@@ -37,7 +38,7 @@ export function CallUI({
     transcriptionStatus,
     startTranscription,
     stopTranscription,
-  } = useTranscription({ preferredLanguage, username });
+  } = useTranscription({ preferredLanguage, isMuted });
 
   // Join call and start transcription
   useEffect(() => {
@@ -92,10 +93,34 @@ export function CallUI({
     console.log("[Daily] Participant left:", event?.participant?.user_name);
   });
 
-  const toggleMute = useCallback(() => {
+  const toggleMute = useCallback(async () => {
     if (!daily) return;
-    daily.setLocalAudio(!isMuted);
-    setIsMuted(!isMuted);
+    const newMutedState = !isMuted;
+
+    // Stop local audio transmission to other participants
+    daily.setLocalAudio(!newMutedState);
+
+    // Also disable/enable audio input entirely to stop transcription from picking up voice when muted
+    // This prevents the user's voice from being transcribed and played back via TTS
+    try {
+      if (newMutedState) {
+        // Disable audio device completely when muting
+        await daily.setInputDevicesAsync({
+          audioDeviceId: false,
+        });
+        console.log("[Daily] Audio device disabled");
+      } else {
+        // Re-enable default audio device when unmuting
+        await daily.setInputDevicesAsync({
+          audioDeviceId: null, // null means use default device
+        });
+        console.log("[Daily] Audio device re-enabled");
+      }
+    } catch (error) {
+      console.error("[Daily] Failed to toggle audio device:", error);
+    }
+
+    setIsMuted(newMutedState);
   }, [daily, isMuted]);
 
   const toggleVideo = useCallback(() => {
