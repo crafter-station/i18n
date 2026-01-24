@@ -1,13 +1,11 @@
-import OpenAI from "openai";
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
 
 import { db } from "@/db";
 import { transcripts } from "@/db/schema";
 import { generateTranscriptId } from "@/lib/nanoid";
 
 export async function POST(req: Request) {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
   try {
     const { text, fromLang, toLang, roomId, participantId, speakerName } =
       await req.json();
@@ -17,21 +15,16 @@ export async function POST(req: Request) {
       return Response.json({ translatedText: text });
     }
 
-    // Translate using GPT-4o-mini (fast + cheap)
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are a real-time translator. Translate the following text from ${fromLang} to ${toLang}. Output ONLY the translation, nothing else. Preserve the tone and intent.`,
-        },
-        { role: "user", content: text },
-      ],
+    // Translate using GPT-4o-mini (fast + cheap) via Vercel AI SDK
+    const result = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: `You are a real-time translator. Translate the following text from ${fromLang} to ${toLang}. Output ONLY the translation, nothing else. Preserve the tone and intent.`,
+      prompt: text,
       temperature: 0.3,
-      max_tokens: 500,
+      maxOutputTokens: 500,
     });
 
-    const translatedText = response.choices[0].message.content?.trim() || text;
+    const translatedText = result.text.trim() || text;
 
     // Store transcript if roomId provided
     if (roomId && participantId) {
