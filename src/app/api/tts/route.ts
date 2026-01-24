@@ -11,25 +11,26 @@ export async function POST(req: Request) {
       return Response.json({ error: "No text provided" }, { status: 400 });
     }
 
-    // Select voice based on language
     const voiceId = LANGUAGE_VOICES[language] || LANGUAGE_VOICES.en;
 
-    // Generate speech using Vercel AI SDK with ElevenLabs
+    // Generate speech using Vercel AI SDK with ElevenLabs Flash v2.5
     const result = await generateSpeech({
-      model: elevenlabs.speech("eleven_flash_v2_5"), // Lowest latency (75ms)
+      model: elevenlabs.speech("eleven_flash_v2_5"),
       text,
       voice: voiceId,
       providerOptions: {
         elevenlabs: {
+          outputFormat: "mp3_22050_32",
+          optimizeStreamingLatency: 4,
           voiceSettings: {
             stability: 0.5,
             similarityBoost: 0.75,
+            speed: 1.1,
           },
         },
       },
     });
 
-    // Return audio as response
     return new Response(Buffer.from(result.audio.uint8Array), {
       headers: {
         "Content-Type": "audio/mpeg",

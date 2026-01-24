@@ -95,13 +95,22 @@ function CallUI({
   const audioQueueRef = useRef<string[]>([]);
   const isPlayingRef = useRef(false);
 
-  // Join the call
+  // Join the call and start transcription
   useEffect(() => {
     if (!daily) return;
 
     const join = async () => {
       try {
         await daily.join({ url: roomUrl, token });
+
+        // Start transcription for all participants
+        await daily.startTranscription({
+          language: "multi",
+          model: "nova-2",
+          punctuate: true,
+          profanity_filter: false,
+        });
+
         setIsJoining(false);
       } catch (error) {
         console.error("Failed to join call:", error);
@@ -111,56 +120,54 @@ function CallUI({
     join();
 
     return () => {
+      daily.stopTranscription();
       daily.leave();
     };
   }, [daily, roomUrl, token]);
 
-  // Handle app messages (for transcriptions from Daily)
-  useDailyEvent("app-message", async (event) => {
-    // Handle transcription messages
-    if (event?.data?.is_final && event?.data?.text) {
-      const { text, user_id, user_name } = event.data;
+  // Handle Daily.co transcription messages
+  useDailyEvent("transcription-message", async (event) => {
+    if (!event?.text || !event?.is_final) return;
 
-      // Skip own messages
-      if (user_id === visitorId) return;
+    const { text, session_id, user_name } = event;
 
-      // Translate the text
-      try {
-        const translateRes = await fetch("/api/translate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text,
-            fromLang: "auto", // TODO: detect language
-            toLang: preferredLanguage,
-            roomId,
-            participantId: user_id,
-            speakerName: user_name,
-          }),
-        });
+    // Skip own transcriptions
+    if (session_id === localParticipant?.session_id) return;
 
-        const { translatedText } = await translateRes.json();
+    // Translate to user's preferred language
+    try {
+      const translateRes = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          fromLang: "auto",
+          toLang: preferredLanguage,
+          roomId,
+          participantId: session_id,
+          speakerName: user_name,
+        }),
+      });
 
-        // Add to transcripts
-        const entry: TranscriptEntry = {
-          id: crypto.randomUUID(),
-          speaker: user_name || "Unknown",
-          original: text,
-          translated: translatedText,
-          timestamp: new Date(),
-        };
+      const { translatedText } = await translateRes.json();
 
-        setTranscripts((prev) => [...prev.slice(-20), entry]);
-        setCurrentTranslation(translatedText);
+      const entry: TranscriptEntry = {
+        id: crypto.randomUUID(),
+        speaker: user_name || "Unknown",
+        original: text,
+        translated: translatedText,
+        timestamp: new Date(),
+      };
 
-        // Play TTS
-        playTTS(translatedText, preferredLanguage);
+      setTranscripts((prev) => [...prev.slice(-20), entry]);
+      setCurrentTranslation(translatedText);
 
-        // Clear current translation after 3 seconds
-        setTimeout(() => setCurrentTranslation(null), 3000);
-      } catch (error) {
-        console.error("Translation error:", error);
-      }
+      // Play TTS in user's preferred language
+      playTTS(translatedText, preferredLanguage);
+
+      setTimeout(() => setCurrentTranslation(null), 3000);
+    } catch (error) {
+      console.error("Translation error:", error);
     }
   });
 
