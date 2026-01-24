@@ -166,6 +166,7 @@ export function CallUI({
         transcripts={transcripts}
         liveTranscript={liveTranscript}
         transcriptionStatus={transcriptionStatus}
+        roomId={roomId}
       />
 
       {/* Controls */}

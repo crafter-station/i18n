@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import {
   motion,
   useDragControls,
   AnimatePresence,
   LayoutGroup,
 } from "motion/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import {
   Sparkles,
   MessageSquare,
@@ -16,21 +18,56 @@ import {
   Languages,
   Send,
   GripHorizontal,
-  FileText,
   Users,
+  Loader2,
+  Mail,
+  ListTodo,
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import type {
   TranscriptEntry,
   LiveTranscript,
   TranscriptionStatus,
 } from "@/components/video-call/types";
 
-type TabType = "transcript" | "summary" | "chat";
+// Action item types from Antunes' implementation
+interface ActionItem {
+  id: string;
+  type: "email" | "task" | "followup";
+  title: string;
+  description: string;
+  assignee?: string;
+  dueDate?: string;
+  priority: "high" | "medium" | "low";
+  metadata: {
+    recipients?: string[];
+    subject?: string;
+    emailBody?: string;
+  };
+}
+
+const typeIcons = {
+  email: Mail,
+  task: ListTodo,
+  followup: Calendar,
+};
+
+const priorityColors = {
+  high: "bg-red-500/20 text-red-400",
+  medium: "bg-yellow-500/20 text-yellow-400",
+  low: "bg-green-500/20 text-green-400",
+};
+
+type TabType = "transcript" | "actions" | "chat";
 
 const TABS: { id: TabType; label: string; icon: typeof Languages }[] = [
   { id: "transcript", label: "Transcript", icon: Languages },
-  { id: "summary", label: "Summary", icon: FileText },
+  { id: "actions", label: "Actions", icon: Sparkles },
   { id: "chat", label: "Chat", icon: MessageSquare },
 ];
 
@@ -47,6 +84,7 @@ interface AgentPanelProps {
   transcripts: TranscriptEntry[];
   liveTranscript: LiveTranscript | null;
   transcriptionStatus: TranscriptionStatus;
+  roomId: string;
 }
 
 export function AgentPanel({
@@ -54,15 +92,47 @@ export function AgentPanel({
   transcripts,
   liveTranscript,
   transcriptionStatus,
+  roomId,
 }: AgentPanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("transcript");
   const [inputValue, setInputValue] = useState("");
-  const [chatMessages, setChatMessages] = useState<
-    { role: "user" | "assistant"; content: string }[]
-  >([]);
   const [selectedSpeaker, setSelectedSpeaker] = useState<string | null>(null);
+
+  // Actions state (from Antunes)
+  const [actions, setActions] = useState<ActionItem[]>([]);
+  const [actionsSummary, setActionsSummary] = useState("");
+  const [selectedActions, setSelectedActions] = useState<Set<string>>(new Set());
+  const [loadingActions, setLoadingActions] = useState(true);
+  const [executingActions, setExecutingActions] = useState<Set<string>>(new Set());
+  const [executedActions, setExecutedActions] = useState<Set<string>>(new Set());
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
+
+  // Chat with AI (from Antunes)
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: `/api/agent/${roomId}`,
+    }),
+  });
+  const isChatLoading = status === "streaming" || status === "submitted";
+
+  // Fetch actions on mount
+  useEffect(() => {
+    async function fetchActions() {
+      try {
+        const res = await fetch(`/api/agent/${roomId}/actions`);
+        const data = await res.json();
+        setActions(data.actions || []);
+        setActionsSummary(data.summary || "");
+      } catch (error) {
+        console.error("Failed to fetch actions:", error);
+      } finally {
+        setLoadingActions(false);
+      }
+    }
+    if (roomId) fetchActions();
+  }, [roomId]);
 
   // Size state for resize functionality
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT });
@@ -142,24 +212,64 @@ export function AgentPanel({
     document.addEventListener("pointerup", handleResizeEnd);
   };
 
+  // Chat submit using real AI
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (inputValue.trim() && status === "ready") {
+      sendMessage({ text: inputValue });
+      setInputValue("");
+    }
+  };
 
-    const userMessage = inputValue;
-    setChatMessages((prev) => [...prev, { role: "user", content: userMessage }]);
-    setInputValue("");
+  // Get message text helper
+  const getMessageText = (message: (typeof messages)[0]) => {
+    return message.parts
+      .map((part) => (part.type === "text" ? part.text : ""))
+      .join("");
+  };
 
-    // Simulate AI response
-    setTimeout(() => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `Based on the conversation, here's my analysis of "${userMessage}"...`,
-        },
-      ]);
-    }, 500);
+  // Action toggle
+  const toggleAction = (id: string) => {
+    setSelectedActions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Execute selected actions
+  const executeSelectedActions = async () => {
+    const toExecute = actions.filter((a) => selectedActions.has(a.id));
+    for (const action of toExecute) {
+      setExecutingActions((prev) => new Set(prev).add(action.id));
+      try {
+        const res = await fetch(`/api/agent/${roomId}/actions/execute`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, meetingSummary: actionsSummary }),
+        });
+        const result = await res.json();
+        if (result.success) {
+          setExecutedActions((prev) => new Set(prev).add(action.id));
+          setSelectedActions((prev) => {
+            const next = new Set(prev);
+            next.delete(action.id);
+            return next;
+          });
+        } else {
+          setActionErrors((prev) => ({ ...prev, [action.id]: result.error || "Failed" }));
+        }
+      } catch {
+        setActionErrors((prev) => ({ ...prev, [action.id]: "Network error" }));
+      } finally {
+        setExecutingActions((prev) => {
+          const next = new Set(prev);
+          next.delete(action.id);
+          return next;
+        });
+      }
+    }
   };
 
   // Group transcripts by speaker
@@ -392,56 +502,96 @@ export function AgentPanel({
                         </div>
                       )}
 
-                      {/* Summary Tab */}
-                      {activeTab === "summary" && (
-                        <div className="h-full overflow-y-auto px-4 py-4">
-                          <div className="space-y-4">
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                <span className="text-xs text-white/50">
-                                  Last updated 5s ago
-                                </span>
+                      {/* Actions Tab */}
+                      {activeTab === "actions" && (
+                        <div className="h-full flex flex-col">
+                          {/* Execute button header */}
+                          {selectedActions.size > 0 && (
+                            <div className="px-4 py-2 border-b border-white/5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={executeSelectedActions}
+                                className="w-full py-2 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                              >
+                                Execute Selected ({selectedActions.size})
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+                            {loadingActions ? (
+                              <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-5 h-5 animate-spin text-white/50 mr-2" />
+                                <span className="text-sm text-white/50">Analyzing meeting...</span>
                               </div>
-                              <h4 className="text-sm font-medium text-white mb-2">
-                                Meeting Summary
-                              </h4>
-                              <p className="text-sm text-white/70">
-                                The team is discussing a new project. Maria
-                                initiated the meeting and João confirmed readiness
-                                to begin. Topics to be covered include project
-                                scope and timeline.
-                              </p>
-                            </div>
+                            ) : actions.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <ListTodo className="w-8 h-8 text-white/20 mb-2" />
+                                <p className="text-sm text-white/50">No action items detected yet</p>
+                              </div>
+                            ) : (
+                              <>
+                                {actionsSummary && (
+                                  <div className="bg-white/5 rounded-lg p-3 mb-3">
+                                    <p className="text-xs text-white/50 mb-1">MEETING SUMMARY</p>
+                                    <p className="text-sm text-white/70">{actionsSummary}</p>
+                                  </div>
+                                )}
+                                {actions.map((action) => {
+                                  const Icon = typeIcons[action.type];
+                                  const isExecuted = executedActions.has(action.id);
+                                  const isExecuting = executingActions.has(action.id);
+                                  const error = actionErrors[action.id];
 
-                            <div>
-                              <h4 className="text-sm font-medium text-white mb-2">
-                                Key Points
-                              </h4>
-                              <ul className="space-y-1 text-sm text-white/70">
-                                <li className="flex items-start gap-2">
-                                  <span className="text-blue-400">•</span>
-                                  New project discussion initiated
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <span className="text-blue-400">•</span>
-                                  All participants confirmed attendance
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <span className="text-blue-400">•</span>
-                                  Multilingual communication active (ES, PT)
-                                </li>
-                              </ul>
-                            </div>
-
-                            <div>
-                              <h4 className="text-sm font-medium text-white mb-2">
-                                Action Items
-                              </h4>
-                              <p className="text-sm text-white/50 italic">
-                                No action items captured yet...
-                              </p>
-                            </div>
+                                  return (
+                                    <div
+                                      key={action.id}
+                                      className={cn(
+                                        "border rounded-lg p-3 transition-all",
+                                        isExecuted
+                                          ? "bg-green-500/10 border-green-500/30"
+                                          : selectedActions.has(action.id)
+                                            ? "border-blue-500/50 bg-blue-500/10"
+                                            : "border-white/10 hover:border-white/20"
+                                      )}
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        {isExecuted ? (
+                                          <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                                        ) : isExecuting ? (
+                                          <Loader2 className="w-4 h-4 animate-spin text-white/50 mt-0.5 shrink-0" />
+                                        ) : (
+                                          <Checkbox
+                                            checked={selectedActions.has(action.id)}
+                                            onCheckedChange={() => toggleAction(action.id)}
+                                            className="mt-0.5 shrink-0"
+                                          />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                            <Icon className="w-3.5 h-3.5 text-white/50" />
+                                            <span className="text-sm font-medium text-white">{action.title}</span>
+                                            <Badge className={cn("text-[10px]", priorityColors[action.priority])}>
+                                              {action.priority}
+                                            </Badge>
+                                          </div>
+                                          <p className="text-xs text-white/60 mb-1">{action.description}</p>
+                                          {action.type === "email" && action.metadata.recipients && (
+                                            <p className="text-[10px] text-white/40">To: {action.metadata.recipients.join(", ")}</p>
+                                          )}
+                                          {error && (
+                                            <div className="flex items-center gap-1 mt-1 text-red-400">
+                                              <AlertCircle className="w-3 h-3" />
+                                              <span className="text-[10px]">{error}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
@@ -449,11 +599,11 @@ export function AgentPanel({
                       {/* Chat Tab */}
                       {activeTab === "chat" && (
                         <div className="h-full flex flex-col px-4 py-3">
-                          {chatMessages.length === 0 ? (
+                          {messages.length === 0 ? (
                             <div className="flex-1 flex flex-col items-center justify-center">
-                              <Sparkles className="w-8 h-8 text-white/20 mb-2" />
+                              <MessageSquare className="w-8 h-8 text-white/20 mb-2" />
                               <p className="text-sm text-white/50">
-                                Ask anything about the conversation...
+                                Ask anything about the meeting...
                               </p>
                               <div className="flex flex-wrap justify-center gap-2 mt-3">
                                 {[
@@ -474,9 +624,9 @@ export function AgentPanel({
                             </div>
                           ) : (
                             <div className="flex-1 overflow-y-auto space-y-3">
-                              {chatMessages.map((msg, i) => (
+                              {messages.map((msg) => (
                                 <div
-                                  key={i}
+                                  key={msg.id}
                                   className={cn(
                                     "flex",
                                     msg.role === "user"
@@ -492,10 +642,17 @@ export function AgentPanel({
                                         : "bg-white/10 text-white"
                                     )}
                                   >
-                                    {msg.content}
+                                    {getMessageText(msg)}
                                   </div>
                                 </div>
                               ))}
+                              {isChatLoading && (
+                                <div className="flex justify-start">
+                                  <div className="bg-white/10 rounded-xl px-3 py-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-white/50" />
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -517,22 +674,27 @@ export function AgentPanel({
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder={
                       activeTab === "chat"
-                        ? "Ask anything..."
-                        : "Search or ask about the conversation..."
+                        ? "Ask about the meeting..."
+                        : "Search transcripts..."
                     }
-                    className="flex-1 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
+                    disabled={isChatLoading}
+                    className="flex-1 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none disabled:opacity-50"
                   />
                   <button
                     type="submit"
-                    disabled={!inputValue.trim()}
+                    disabled={!inputValue.trim() || isChatLoading}
                     className={cn(
                       "p-1.5 rounded-lg transition-colors",
-                      inputValue.trim()
+                      inputValue.trim() && !isChatLoading
                         ? "text-blue-400 hover:bg-blue-500/20"
                         : "text-white/30"
                     )}
                   >
-                    <Send className="w-4 h-4" />
+                    {isChatLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </form>
