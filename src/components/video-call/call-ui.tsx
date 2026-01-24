@@ -96,13 +96,15 @@ export function CallUI({
 
   const toggleMute = useCallback(() => {
     if (!daily) return;
-    daily.setLocalAudio(!isMuted);
+    // isMuted=false means audio is ON, so pass false to turn it OFF
+    daily.setLocalAudio(isMuted);
     setIsMuted(!isMuted);
   }, [daily, isMuted]);
 
   const toggleVideo = useCallback(() => {
     if (!daily) return;
-    daily.setLocalVideo(!isVideoOff);
+    // isVideoOff=false means video is ON, so pass false to turn it OFF
+    daily.setLocalVideo(isVideoOff);
     setIsVideoOff(!isVideoOff);
   }, [daily, isVideoOff]);
 
