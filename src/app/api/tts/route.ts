@@ -12,8 +12,8 @@ export async function POST(req: Request) {
     }
 
     const voiceId = LANGUAGE_VOICES[language] || LANGUAGE_VOICES.en;
+    console.log("[TTS API] Generating speech:", { language, voiceId, textLength: text.length });
 
-    // Generate speech using Vercel AI SDK with ElevenLabs Flash v2.5
     const result = await generateSpeech({
       model: elevenlabs.speech("eleven_flash_v2_5"),
       text,
