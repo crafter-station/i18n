@@ -31,6 +31,10 @@ export async function POST(req: Request) {
           enable_chat: true,
           start_video_off: false,
           start_audio_off: false,
+          // Transcription permissions
+          permissions: {
+            canAdmin: ["transcription"],
+          },
         },
       }),
     });
