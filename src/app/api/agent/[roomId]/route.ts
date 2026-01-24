@@ -4,7 +4,6 @@ import {
   stepCountIs,
   type UIMessage,
 } from "ai";
-import { openai } from "@ai-sdk/openai";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -71,7 +70,7 @@ Guidelines:
 - Respond in the same language the user asks the question`;
 
     const result = streamText({
-      model: openai("gpt-5.1"),
+      model: "openai/gpt-5.1",
       system: systemPrompt,
       messages: await convertToModelMessages(messages),
       tools: {
