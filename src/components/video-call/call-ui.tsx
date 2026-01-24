@@ -15,6 +15,7 @@ import { AgentPanel } from "@/components/agent-panel";
 import { CallControls } from "./call-controls";
 import { useTranscription } from "./hooks/use-transcription";
 import { ParticipantTile } from "./participant-tile";
+import { ShareModal } from "./share-modal";
 import type { VideoCallProps } from "./types";
 
 export function CallUI({
@@ -31,6 +32,7 @@ export function CallUI({
   const [isJoining, setIsJoining] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const {
     transcripts,
@@ -61,6 +63,7 @@ export function CallUI({
 
         await startTranscription();
         setIsJoining(false);
+        setShowShareModal(true);
       } catch (error) {
         console.error("[Daily] Failed to join:", error);
       }
@@ -176,11 +179,18 @@ export function CallUI({
         isMuted={isMuted}
         isVideoOff={isVideoOff}
         preferredLanguage={preferredLanguage}
-        roomId={roomId}
         onToggleMute={toggleMute}
         onToggleVideo={toggleVideo}
         onLeave={leaveCall}
       />
+
+      {/* Share modal - shows when joining */}
+      {showShareModal && (
+        <ShareModal
+          roomId={roomId}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }

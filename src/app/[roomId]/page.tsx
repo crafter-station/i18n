@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
-import { ArrowRight, Check, Copy, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 import { getLanguageName, type LanguageCode } from "@/lib/languages";
 
@@ -41,14 +41,6 @@ export default function RoomPage() {
   const [roomUrl, setRoomUrl] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyLink = async () => {
-    const url = window.location.href;
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleJoin = async () => {
     if (!visitorId || !username.trim()) return;
@@ -102,7 +94,7 @@ export default function RoomPage() {
     <div className="min-h-screen bg-neutral-100 flex items-center justify-center">
       <div className="w-full max-w-md p-8">
         <div className="space-y-6">
-          <div className="space-y-3 text-center">
+          <div className="space-y-2 text-center">
             <p className="text-xs font-medium tracking-widest uppercase text-neutral-500">
               [ JOIN ROOM ]
             </p>
@@ -112,23 +104,6 @@ export default function RoomPage() {
             <p className="text-neutral-600">
               Set your name and preferred language
             </p>
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-neutral-600 hover:text-black bg-white border border-neutral-200 rounded-lg hover:border-neutral-300 transition-colors cursor-pointer"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  <span>Copy invite link</span>
-                </>
-              )}
-            </button>
           </div>
 
           <form
