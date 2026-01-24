@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { AgentPanel } from "@/components/agent-panel";
 import { getLanguageFlag, getLanguageName } from "@/lib/languages";
 
 interface VideoCallProps {
@@ -85,12 +86,14 @@ function CallUI({
   const participantIds = useParticipantIds({ filter: "remote" });
 
   const [isJoining, setIsJoining] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
   const [currentTranslation, setCurrentTranslation] = useState<string | null>(
-    null
+    null,
   );
+
+  // Derive audio/video state from actual Daily participant state
+  const isMuted = localParticipant?.audio === false;
+  const isVideoOff = localParticipant?.video === false;
 
   const audioQueueRef = useRef<string[]>([]);
   const isPlayingRef = useRef(false);
@@ -209,14 +212,14 @@ function CallUI({
 
   const toggleMute = useCallback(() => {
     if (!daily) return;
-    daily.setLocalAudio(!isMuted);
-    setIsMuted(!isMuted);
+    // Toggle based on current actual state
+    daily.setLocalAudio(isMuted);
   }, [daily, isMuted]);
 
   const toggleVideo = useCallback(() => {
     if (!daily) return;
-    daily.setLocalVideo(!isVideoOff);
-    setIsVideoOff(!isVideoOff);
+    // Toggle based on current actual state
+    daily.setLocalVideo(isVideoOff);
   }, [daily, isVideoOff]);
 
   const leaveCall = useCallback(() => {
@@ -237,7 +240,7 @@ function CallUI({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 flex flex-col">
+    <div className="h-screen bg-neutral-900 flex flex-col overflow-hidden">
       {/* Translation overlay */}
       {currentTranslation && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/80 text-white px-6 py-3 rounded-lg max-w-xl text-center animate-fade-in">
@@ -245,66 +248,48 @@ function CallUI({
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 flex">
-        {/* Video grid */}
-        <div className="flex-1 p-4">
-          <div
-            className={`grid gap-4 h-full ${
-              participantIds.length === 0
-                ? "grid-cols-1"
-                : participantIds.length === 1
-                  ? "grid-cols-2"
-                  : "grid-cols-2 grid-rows-2"
-            }`}
-          >
-            {/* Local participant */}
-            {localParticipant && (
-              <ParticipantTile
-                sessionId={localParticipant.session_id}
-                username={username}
-                isLocal
-                preferredLanguage={preferredLanguage}
-              />
-            )}
+      {/* Video grid - takes remaining space */}
+      <div className="flex-1 p-4 pb-0 overflow-hidden">
+        <div
+          className={`grid gap-4 h-full ${
+            participantIds.length === 0
+              ? "grid-cols-1"
+              : participantIds.length === 1
+                ? "grid-cols-2"
+                : "grid-cols-2 grid-rows-2"
+          }`}
+        >
+          {/* Local participant */}
+          {localParticipant && (
+            <ParticipantTile
+              sessionId={localParticipant.session_id}
+              username={username}
+              isLocal
+              preferredLanguage={preferredLanguage}
+            />
+          )}
 
-            {/* Remote participants */}
-            {participantIds.map((id) => (
-              <ParticipantTile key={id} sessionId={id} />
-            ))}
-          </div>
-        </div>
-
-        {/* Transcript panel */}
-        <div className="w-80 bg-neutral-800 p-4 overflow-y-auto">
-          <h3 className="text-white font-medium mb-4 text-sm tracking-widest uppercase">
-            [ TRANSCRIPT ]
-          </h3>
-          <div className="space-y-3">
-            {transcripts.length === 0 ? (
-              <p className="text-neutral-500 text-sm">
-                Translations will appear here...
-              </p>
-            ) : (
-              transcripts.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="bg-neutral-700/50 rounded p-3 space-y-1"
-                >
-                  <p className="text-neutral-400 text-xs">{entry.speaker}</p>
-                  <p className="text-neutral-500 text-sm line-through">
-                    {entry.original}
-                  </p>
-                  <p className="text-white text-sm">{entry.translated}</p>
-                </div>
-              ))
-            )}
-          </div>
+          {/* Remote participants */}
+          {participantIds.map((id) => (
+            <ParticipantTile key={id} sessionId={id} />
+          ))}
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="bg-neutral-800 p-4">
+      {/* Floating agent panel */}
+      <AgentPanel preferredLanguage={preferredLanguage} />
+
+      {/* Fixed controls bar */}
+      <div className="shrink-0 bg-neutral-800/90 backdrop-blur-sm p-4 border-t border-white/5 relative">
+        {/* Language indicator - absolute positioned so it doesn't affect centering */}
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 text-sm flex items-center gap-2">
+          <span>{getLanguageFlag(preferredLanguage)}</span>
+          <span className="hidden sm:inline">
+            Hearing in {getLanguageName(preferredLanguage)}
+          </span>
+        </div>
+
+        {/* Centered controls */}
         <div className="flex items-center justify-center gap-4">
           <Button
             variant={isMuted ? "destructive" : "secondary"}
@@ -340,11 +325,6 @@ function CallUI({
           >
             <PhoneOff className="w-5 h-5" />
           </Button>
-
-          <div className="ml-4 text-white text-sm">
-            {getLanguageFlag(preferredLanguage)} Hearing in{" "}
-            {getLanguageName(preferredLanguage)}
-          </div>
         </div>
       </div>
     </div>
