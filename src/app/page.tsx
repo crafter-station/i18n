@@ -1,8 +1,35 @@
-import { ArrowRight } from "lucide-react";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 import { LanguageNetwork } from "@/components/language-network";
 
 export default function Home() {
+  const router = useRouter();
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateRoom = async () => {
+    setIsCreating(true);
+    try {
+      const res = await fetch("/api/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      const data = await res.json();
+
+      if (data.roomId) {
+        router.push(`/${data.roomId}`);
+      }
+    } catch (error) {
+      console.error("Failed to create room:", error);
+      setIsCreating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-100">
       {/* Navigation */}
@@ -23,17 +50,13 @@ export default function Home() {
           >
             Infrastructure
           </a>
-          <a
-            href="#pricing"
-            className="text-sm text-neutral-600 hover:text-black transition-colors"
-          >
-            Pricing
-          </a>
           <button
             type="button"
-            className="text-sm font-medium bg-black text-white px-4 py-2 hover:bg-neutral-800 transition-colors"
+            onClick={handleCreateRoom}
+            disabled={isCreating}
+            className="text-sm font-medium bg-black text-white px-4 py-2 hover:bg-neutral-800 transition-colors disabled:opacity-50"
           >
-            Get Started
+            {isCreating ? "Creating..." : "Start Call"}
           </button>
         </div>
       </nav>
@@ -56,17 +79,28 @@ export default function Home() {
             <div className="flex items-center gap-6 pt-4">
               <button
                 type="button"
-                className="flex items-center gap-2 bg-black text-white px-6 py-3 font-medium hover:bg-neutral-800 transition-colors"
+                onClick={handleCreateRoom}
+                disabled={isCreating}
+                className="flex items-center gap-2 bg-black text-white px-6 py-3 font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
               >
-                Start Free Trial
-                <ArrowRight className="w-4 h-4" />
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating Room...
+                  </>
+                ) : (
+                  <>
+                    Start Free Trial
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
               <a
-                href="#demo"
+                href="#features"
                 className="flex items-center gap-2 text-sm font-medium tracking-wide uppercase hover:text-neutral-600 transition-colors"
               >
                 <span className="w-1.5 h-1.5 bg-black" />
-                Watch Demo
+                How It Works
                 <ArrowRight className="w-3 h-3" />
               </a>
             </div>
@@ -91,10 +125,10 @@ export default function Home() {
               </p>
             </div>
             <div className="space-y-2">
-              <p className="text-6xl lg:text-7xl font-light text-black">40+</p>
+              <p className="text-6xl lg:text-7xl font-light text-black">10+</p>
               <p className="font-medium text-black">Languages supported</p>
               <p className="text-sm text-neutral-600">
-                From Spanish to Mandarin, Japanese to Arabic
+                Spanish, Portuguese, French, German, and more
               </p>
             </div>
             <div className="space-y-2">
@@ -106,11 +140,11 @@ export default function Home() {
             </div>
             <div className="space-y-2">
               <p className="text-6xl lg:text-7xl font-light text-black">
-                100+
+                10+
               </p>
               <p className="font-medium text-black">Concurrent speakers</p>
               <p className="text-sm text-neutral-600">
-                Scale from 1:1 calls to global all-hands
+                Scale from 1:1 calls to team meetings
               </p>
             </div>
           </div>
@@ -126,22 +160,24 @@ export default function Home() {
                 [ HOW IT WORKS ]
               </p>
               <h2 className="text-4xl lg:text-5xl font-light tracking-tight text-black leading-[1.1]">
-                Seamless multilingual conversations
+                Your personal translation agent
               </h2>
               <p className="text-lg text-neutral-700 leading-relaxed max-w-xl">
-                Each participant sets their preferred language. Our AI agents
-                listen, transcribe, translate, and synthesize speech in
+                Each participant sets their preferred language. Your AI agent
+                listens, transcribes, translates, and synthesizes speech in
                 real-time. Everyone speaks naturally while hearing everything in
                 their native tongue.
               </p>
-              <a
-                href="#docs"
+              <button
+                type="button"
+                onClick={handleCreateRoom}
+                disabled={isCreating}
                 className="inline-flex items-center gap-2 text-sm font-medium tracking-wide uppercase hover:text-neutral-600 transition-colors pt-4"
               >
                 <span className="w-1.5 h-1.5 bg-black" />
-                Technical Documentation
+                Try It Now
                 <ArrowRight className="w-3 h-3" />
-              </a>
+              </button>
             </div>
             <div className="space-y-8">
               <div className="border-l-2 border-black pl-6 space-y-2">
@@ -167,7 +203,7 @@ export default function Home() {
                   3. AI Translation
                 </p>
                 <p className="text-neutral-600">
-                  Agentic LLMs translate preserving tone, idioms, and technical
+                  GPT-4o translates preserving tone, idioms, and technical
                   terminology
                 </p>
               </div>
@@ -176,8 +212,7 @@ export default function Home() {
                   4. Voice Synthesis
                 </p>
                 <p className="text-neutral-600">
-                  Natural TTS delivers translation in the listener's language
-                  with original speaker's voice characteristics
+                  ElevenLabs delivers natural TTS in the listener's language
                 </p>
               </div>
             </div>
@@ -191,100 +226,45 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-6">
               <p className="text-xs font-medium tracking-widest uppercase text-neutral-500">
-                [ INFRASTRUCTURE ]
+                [ POWERED BY ]
               </p>
               <h2 className="text-4xl lg:text-5xl font-light tracking-tight text-black leading-[1.1]">
-                Built on Daily.co's global network
+                Built for the hackathon
               </h2>
               <p className="text-lg text-neutral-700 leading-relaxed max-w-xl">
-                We leverage Daily.co's battle-tested WebRTC infrastructure to
-                ensure crystal-clear audio capture and delivery. Combined with
-                edge-deployed AI models, we achieve translation latency that
-                feels instantaneous.
+                Combining the best-in-class infrastructure for real-time
+                communication, AI translation, and voice synthesis.
               </p>
-              <a
-                href="#architecture"
-                className="inline-flex items-center gap-2 text-sm font-medium tracking-wide uppercase hover:text-neutral-600 transition-colors pt-4"
-              >
-                <span className="w-1.5 h-1.5 bg-black" />
-                View Architecture
-                <ArrowRight className="w-3 h-3" />
-              </a>
             </div>
             <div className="grid grid-cols-2 gap-8">
               <div className="space-y-2">
-                <p className="text-5xl font-light text-black">75+</p>
-                <p className="font-medium text-black">Global edge locations</p>
+                <p className="text-3xl font-light text-black">Daily.co</p>
+                <p className="font-medium text-black">Video Infrastructure</p>
                 <p className="text-sm text-neutral-600">
-                  AI inference at the edge for minimal latency
+                  WebRTC for ultra-low latency video and audio
                 </p>
               </div>
               <div className="space-y-2">
-                <p className="text-5xl font-light text-black">99.99%</p>
-                <p className="font-medium text-black">Uptime SLA</p>
+                <p className="text-3xl font-light text-black">OpenAI</p>
+                <p className="font-medium text-black">Translation</p>
                 <p className="text-sm text-neutral-600">
-                  Enterprise-grade reliability guaranteed
+                  GPT-4o-mini for fast, accurate translation
                 </p>
               </div>
               <div className="space-y-2">
-                <p className="text-5xl font-light text-black">E2E</p>
-                <p className="font-medium text-black">Encrypted</p>
+                <p className="text-3xl font-light text-black">ElevenLabs</p>
+                <p className="font-medium text-black">Voice Synthesis</p>
                 <p className="text-sm text-neutral-600">
-                  Your conversations never leave our secure pipeline
+                  Flash v2.5 for 75ms latency TTS
                 </p>
               </div>
               <div className="space-y-2">
-                <p className="text-5xl font-light text-black">SOC 2</p>
-                <p className="font-medium text-black">Compliant</p>
+                <p className="text-3xl font-light text-black">Resend</p>
+                <p className="font-medium text-black">Email Summary</p>
                 <p className="text-sm text-neutral-600">
-                  Enterprise security and privacy standards
+                  Post-call transcript delivered to inbox
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Use Cases */}
-      <section className="border-t border-neutral-200">
-        <div className="px-8 py-24 max-w-7xl mx-auto">
-          <div className="space-y-6 max-w-2xl mb-16">
-            <p className="text-xs font-medium tracking-widest uppercase text-neutral-500">
-              [ USE CASES ]
-            </p>
-            <h2 className="text-4xl lg:text-5xl font-light tracking-tight text-black leading-[1.1]">
-              For teams that span the globe
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-4 p-8 border border-neutral-200 hover:border-neutral-400 transition-colors">
-              <p className="text-2xl font-medium text-black">
-                Global All-Hands
-              </p>
-              <p className="text-neutral-600 leading-relaxed">
-                Company-wide meetings where every employee participates in their
-                preferred language. No more translation delays or missed
-                context.
-              </p>
-            </div>
-            <div className="space-y-4 p-8 border border-neutral-200 hover:border-neutral-400 transition-colors">
-              <p className="text-2xl font-medium text-black">
-                International Sales
-              </p>
-              <p className="text-neutral-600 leading-relaxed">
-                Close deals across borders without interpreters. Your sales team
-                speaks naturally while prospects hear perfect native
-                translation.
-              </p>
-            </div>
-            <div className="space-y-4 p-8 border border-neutral-200 hover:border-neutral-400 transition-colors">
-              <p className="text-2xl font-medium text-black">
-                Customer Support
-              </p>
-              <p className="text-neutral-600 leading-relaxed">
-                Provide support in 40+ languages with a single team. Real-time
-                translation removes language as a hiring constraint.
-              </p>
             </div>
           </div>
         </div>
@@ -295,27 +275,30 @@ export default function Home() {
         <div className="px-8 py-24 max-w-7xl mx-auto text-center">
           <div className="space-y-8 max-w-2xl mx-auto">
             <h2 className="text-4xl lg:text-5xl font-light tracking-tight text-black leading-[1.1]">
-              Start breaking language barriers today
+              Start breaking language barriers
             </h2>
             <p className="text-lg text-neutral-700 leading-relaxed">
-              Free for up to 5 participants. No credit card required.
+              Create a room, share the link, and start talking.
             </p>
             <div className="flex items-center justify-center gap-6 pt-4">
               <button
                 type="button"
-                className="flex items-center gap-2 bg-black text-white px-8 py-4 font-medium hover:bg-neutral-800 transition-colors"
+                onClick={handleCreateRoom}
+                disabled={isCreating}
+                className="flex items-center gap-2 bg-black text-white px-8 py-4 font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
               >
-                Get Started Free
-                <ArrowRight className="w-4 h-4" />
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    Create Room
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
-              <a
-                href="#contact"
-                className="flex items-center gap-2 text-sm font-medium tracking-wide uppercase hover:text-neutral-600 transition-colors"
-              >
-                <span className="w-1.5 h-1.5 bg-black" />
-                Contact Sales
-                <ArrowRight className="w-3 h-3" />
-              </a>
             </div>
           </div>
         </div>
@@ -332,22 +315,28 @@ export default function Home() {
               </p>
             </div>
             <div className="flex items-center gap-8 text-sm text-neutral-600">
-              <a href="#" className="hover:text-black transition-colors">
-                Privacy
-              </a>
-              <a href="#" className="hover:text-black transition-colors">
-                Terms
-              </a>
-              <a href="#" className="hover:text-black transition-colors">
-                Documentation
-              </a>
-              <a href="#" className="hover:text-black transition-colors">
+              <a
+                href="https://github.com/crafter-station/i18n"
+                className="hover:text-black transition-colors"
+              >
                 GitHub
+              </a>
+              <a
+                href="https://daily.co"
+                className="hover:text-black transition-colors"
+              >
+                Daily.co
+              </a>
+              <a
+                href="https://elevenlabs.io"
+                className="hover:text-black transition-colors"
+              >
+                ElevenLabs
               </a>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-neutral-200 text-sm text-neutral-500">
-            <p>Built by Crafter Station. Powered by Daily.co.</p>
+            <p>Built by Crafter Station for Agents Hackathon Brazil 2026.</p>
           </div>
         </div>
       </footer>
