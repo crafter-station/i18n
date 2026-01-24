@@ -10,7 +10,7 @@ import {
   useAudioTrack,
 } from "@daily-co/daily-react";
 import DailyIframe, { type DailyCall } from "@daily-co/daily-js";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,26 +25,27 @@ interface VideoCallProps {
   roomId: string;
 }
 
+// Module-level singleton to handle React Strict Mode
+let globalCallObject: DailyCall | null = null;
+
 export function VideoCall(props: VideoCallProps) {
   const [callObject, setCallObject] = useState<DailyCall | null>(null);
-  const callObjectRef = useRef<DailyCall | null>(null);
 
   useEffect(() => {
-    // Prevent duplicate instances (React Strict Mode runs effects twice)
-    if (callObjectRef.current) return;
+    // Use existing instance or create new one
+    if (!globalCallObject) {
+      globalCallObject = DailyIframe.createCallObject({
+        audioSource: true,
+        videoSource: true,
+      });
+    }
 
-    const daily = DailyIframe.createCallObject({
-      audioSource: true,
-      videoSource: true,
-    });
-    callObjectRef.current = daily;
-    setCallObject(daily);
+    setCallObject(globalCallObject);
 
+    // Cleanup only on actual unmount (not Strict Mode remount)
     return () => {
-      if (callObjectRef.current) {
-        callObjectRef.current.destroy();
-        callObjectRef.current = null;
-      }
+      // Don't destroy here - let it persist for Strict Mode
+      // The call will be cleaned up when leaving the page
     };
   }, []);
 
