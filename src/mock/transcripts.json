@@ -1,0 +1,172 @@
+{
+  "roomId": "7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+  "participants": [
+    {
+      "id": "antunes_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "visitorId": "antunes",
+      "username": "Antunes",
+      "preferredLanguage": "pt",
+      "email": "antunes@example.com"
+    },
+    {
+      "id": "john_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "visitorId": "john",
+      "username": "John Doe",
+      "preferredLanguage": "en",
+      "email": "john@example.com"
+    },
+    {
+      "id": "maria_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "visitorId": "maria",
+      "username": "Maria",
+      "preferredLanguage": "it",
+      "email": "maria@example.com"
+    }
+  ],
+  "transcripts": [
+    {
+      "id": "tr_001",
+      "participantId": "john_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "John Doe",
+      "originalText": "Hey team, thanks for joining. Today we need to discuss the new dashboard feature. We have a deadline next Friday.",
+      "originalLanguage": "en",
+      "translatedTexts": {
+        "pt": "Olá equipe, obrigado por participar. Hoje precisamos discutir a nova funcionalidade do dashboard. Temos prazo até sexta-feira que vem.",
+        "it": "Ciao team, grazie per esservi uniti. Oggi dobbiamo discutere la nuova funzionalità della dashboard. Abbiamo una scadenza venerdì prossimo."
+      },
+      "timestamp": "2024-01-24T14:00:00.000Z"
+    },
+    {
+      "id": "tr_002",
+      "participantId": "maria_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "Maria",
+      "originalText": "Ho già preparato alcuni mockup per il design. Posso condividerli con voi dopo la riunione.",
+      "originalLanguage": "it",
+      "translatedTexts": {
+        "en": "I've already prepared some mockups for the design. I can share them with you after the meeting.",
+        "pt": "Já preparei alguns mockups para o design. Posso compartilhar com vocês após a reunião."
+      },
+      "timestamp": "2024-01-24T14:01:30.000Z"
+    },
+    {
+      "id": "tr_003",
+      "participantId": "antunes_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "Antunes",
+      "originalText": "Perfeito Maria! Sobre a parte técnica, vou precisar implementar a integração com a API de analytics. John, você pode me passar a documentação?",
+      "originalLanguage": "pt",
+      "translatedTexts": {
+        "en": "Perfect Maria! About the technical part, I'll need to implement the analytics API integration. John, can you send me the documentation?",
+        "it": "Perfetto Maria! Sulla parte tecnica, dovrò implementare l'integrazione con l'API di analytics. John, puoi mandarmi la documentazione?"
+      },
+      "timestamp": "2024-01-24T14:02:45.000Z"
+    },
+    {
+      "id": "tr_004",
+      "participantId": "john_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "John Doe",
+      "originalText": "Sure Antunes, I'll send you the API docs right after this call. Also, we need to prioritize the real-time charts. The stakeholders specifically asked for that.",
+      "originalLanguage": "en",
+      "translatedTexts": {
+        "pt": "Claro Antunes, vou te enviar a documentação da API logo após essa chamada. Além disso, precisamos priorizar os gráficos em tempo real. Os stakeholders pediram especificamente isso.",
+        "it": "Certo Antunes, ti invierò la documentazione dell'API subito dopo questa chiamata. Inoltre, dobbiamo dare priorità ai grafici in tempo reale. Gli stakeholder lo hanno chiesto specificamente."
+      },
+      "timestamp": "2024-01-24T14:03:30.000Z"
+    },
+    {
+      "id": "tr_005",
+      "participantId": "maria_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "Maria",
+      "originalText": "Per i grafici in tempo real, suggerisco di usare un design minimalista con colori che seguono il nostro brand. Antunes, che libreria stai pensando di usare?",
+      "originalLanguage": "it",
+      "translatedTexts": {
+        "en": "For the real-time charts, I suggest using a minimalist design with colors that follow our brand. Antunes, what library are you thinking of using?",
+        "pt": "Para os gráficos em tempo real, sugiro usar um design minimalista com cores que seguem nossa marca. Antunes, qual biblioteca você está pensando em usar?"
+      },
+      "timestamp": "2024-01-24T14:04:15.000Z"
+    },
+    {
+      "id": "tr_006",
+      "participantId": "antunes_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "Antunes",
+      "originalText": "Estou pensando em usar Recharts ou Tremor. Ambas funcionam bem com React e são fáceis de customizar. Maria, você pode me enviar as cores do brand guide?",
+      "originalLanguage": "pt",
+      "translatedTexts": {
+        "en": "I'm thinking of using Recharts or Tremor. Both work well with React and are easy to customize. Maria, can you send me the brand guide colors?",
+        "it": "Sto pensando di usare Recharts o Tremor. Entrambi funzionano bene con React e sono facili da personalizzare. Maria, puoi mandarmi i colori della guida del brand?"
+      },
+      "timestamp": "2024-01-24T14:05:00.000Z"
+    },
+    {
+      "id": "tr_007",
+      "participantId": "john_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "John Doe",
+      "originalText": "Great discussion! Let me summarize the action items: Antunes will handle the API integration and charts, Maria will share the mockups and brand colors, and I'll send the API documentation today.",
+      "originalLanguage": "en",
+      "translatedTexts": {
+        "pt": "Ótima discussão! Deixe-me resumir os itens de ação: Antunes vai cuidar da integração da API e dos gráficos, Maria vai compartilhar os mockups e cores da marca, e eu vou enviar a documentação da API hoje.",
+        "it": "Ottima discussione! Lasciami riassumere i punti d'azione: Antunes si occuperà dell'integrazione dell'API e dei grafici, Maria condividerà i mockup e i colori del brand, e io invierò la documentazione dell'API oggi."
+      },
+      "timestamp": "2024-01-24T14:06:30.000Z"
+    },
+    {
+      "id": "tr_008",
+      "participantId": "maria_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "Maria",
+      "originalText": "Perfetto! Propongo di fare un altro sync mercoledì per vedere i progressi. Va bene per tutti?",
+      "originalLanguage": "it",
+      "translatedTexts": {
+        "en": "Perfect! I propose we do another sync on Wednesday to check the progress. Does that work for everyone?",
+        "pt": "Perfeito! Proponho fazermos outro sync na quarta-feira para ver o progresso. Funciona para todos?"
+      },
+      "timestamp": "2024-01-24T14:07:15.000Z"
+    },
+    {
+      "id": "tr_009",
+      "participantId": "antunes_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "Antunes",
+      "originalText": "Funciona pra mim! John, você pode criar o evento no calendário?",
+      "originalLanguage": "pt",
+      "translatedTexts": {
+        "en": "Works for me! John, can you create the calendar event?",
+        "it": "Funziona per me! John, puoi creare l'evento nel calendario?"
+      },
+      "timestamp": "2024-01-24T14:07:45.000Z"
+    },
+    {
+      "id": "tr_010",
+      "participantId": "john_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "John Doe",
+      "originalText": "Absolutely, I'll schedule it for Wednesday at 2 PM. One more thing - Antunes, please make sure to write unit tests for the chart components. QA will need them.",
+      "originalLanguage": "en",
+      "translatedTexts": {
+        "pt": "Com certeza, vou agendar para quarta às 14h. Mais uma coisa - Antunes, por favor certifique-se de escrever testes unitários para os componentes de gráfico. O QA vai precisar deles.",
+        "it": "Assolutamente, lo programmerò per mercoledì alle 14:00. Un'altra cosa - Antunes, assicurati di scrivere test unitari per i componenti dei grafici. Il QA ne avrà bisogno."
+      },
+      "timestamp": "2024-01-24T14:08:30.000Z"
+    },
+    {
+      "id": "tr_011",
+      "participantId": "antunes_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "Antunes",
+      "originalText": "Pode deixar, vou usar Jest e React Testing Library. Acho que consigo ter a primeira versão pronta até terça.",
+      "originalLanguage": "pt",
+      "translatedTexts": {
+        "en": "You got it, I'll use Jest and React Testing Library. I think I can have the first version ready by Tuesday.",
+        "it": "Ci penso io, userò Jest e React Testing Library. Penso di poter avere la prima versione pronta entro martedì."
+      },
+      "timestamp": "2024-01-24T14:09:00.000Z"
+    },
+    {
+      "id": "tr_012",
+      "participantId": "john_7566fbe8-e902-4bf1-8821-1d0c63f7d6da",
+      "speakerName": "John Doe",
+      "originalText": "Excellent! Thanks everyone. Let's crush this deadline. See you Wednesday!",
+      "originalLanguage": "en",
+      "translatedTexts": {
+        "pt": "Excelente! Obrigado a todos. Vamos arrasar com esse prazo. Vejo vocês quarta-feira!",
+        "it": "Eccellente! Grazie a tutti. Spacchiamo questa scadenza. Ci vediamo mercoledì!"
+      },
+      "timestamp": "2024-01-24T14:09:30.000Z"
+    }
+  ]
+}
