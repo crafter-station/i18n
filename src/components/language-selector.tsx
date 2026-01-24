@@ -2,7 +2,7 @@
 
 import { ChevronDown } from "lucide-react";
 
-import { SUPPORTED_LANGUAGES } from "@/lib/languages";
+import { type LanguageCode, SUPPORTED_LANGUAGES } from "@/lib/languages";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface LanguageSelectorProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: LanguageCode;
+  onChange: (value: LanguageCode) => void;
   disabled?: boolean;
 }
 
