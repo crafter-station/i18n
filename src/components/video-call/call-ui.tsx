@@ -182,6 +182,7 @@ export function CallUI({
         onToggleMute={toggleMute}
         onToggleVideo={toggleVideo}
         onLeave={leaveCall}
+        onShowShare={() => setShowShareModal(true)}
       />
 
       {/* Share modal - shows when joining */}

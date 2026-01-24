@@ -1,6 +1,6 @@
 "use client";
 
-import { Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
+import { Info, Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
 
 import {
   getLanguageFlag,
@@ -17,6 +17,7 @@ interface CallControlsProps {
   onToggleMute: () => void;
   onToggleVideo: () => void;
   onLeave: () => void;
+  onShowShare: () => void;
 }
 
 export function CallControls({
@@ -26,6 +27,7 @@ export function CallControls({
   onToggleMute,
   onToggleVideo,
   onLeave,
+  onShowShare,
 }: CallControlsProps) {
   return (
     <div className="shrink-0 bg-neutral-800/90 backdrop-blur-sm p-4 border-t border-white/5 relative">
@@ -74,6 +76,16 @@ export function CallControls({
           <PhoneOff className="w-5 h-5" />
         </Button>
       </div>
+
+      {/* Share info button - absolute positioned on the right */}
+      <button
+        type="button"
+        onClick={onShowShare}
+        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+        title="Share meeting link"
+      >
+        <Info className="w-5 h-5" />
+      </button>
     </div>
   );
 }
