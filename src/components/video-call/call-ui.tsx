@@ -37,7 +37,7 @@ export function CallUI({
     transcriptionStatus,
     startTranscription,
     stopTranscription,
-  } = useTranscription({ preferredLanguage, roomId });
+  } = useTranscription({ preferredLanguage, roomId, username });
 
   // Join call and start transcription
   useEffect(() => {
