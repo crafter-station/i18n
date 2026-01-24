@@ -1,9 +1,14 @@
 "use client";
 
-import { useRef, useLayoutEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
+
 import { Languages } from "lucide-react";
 
-import type { TranscriptEntry, LiveTranscript, TranscriptionStatus } from "./types";
+import type {
+  LiveTranscript,
+  TranscriptEntry,
+  TranscriptionStatus,
+} from "./types";
 
 interface TranscriptPanelProps {
   transcripts: TranscriptEntry[];

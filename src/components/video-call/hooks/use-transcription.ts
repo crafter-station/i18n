@@ -1,18 +1,24 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useDaily, useDailyEvent, useLocalParticipant } from "@daily-co/daily-react";
+import { useCallback, useState } from "react";
+
+import {
+  useDaily,
+  useDailyEvent,
+  useLocalParticipant,
+} from "@daily-co/daily-react";
+
+import { type LanguageCode, SUPPORTED_LANGUAGES } from "@/lib/languages";
 
 import type {
-  TranscriptEntry,
   LiveTranscript,
+  TranscriptEntry,
   TranscriptionStatus,
 } from "../types";
 import { useTTS } from "./use-tts";
-import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 
 interface UseTranscriptionOptions {
-  preferredLanguage: string;
+  preferredLanguage: LanguageCode;
   username: string;
 }
 
@@ -25,8 +31,12 @@ export function useTranscription({
   const { playTTS } = useTTS();
 
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
-  const [liveTranscript, setLiveTranscript] = useState<LiveTranscript | null>(null);
-  const [currentTranslation, setCurrentTranslation] = useState<string | null>(null);
+  const [liveTranscript, setLiveTranscript] = useState<LiveTranscript | null>(
+    null,
+  );
+  const [currentTranslation, setCurrentTranslation] = useState<string | null>(
+    null,
+  );
   const [transcriptionStatus, setTranscriptionStatus] =
     useState<TranscriptionStatus>("starting");
 
@@ -53,40 +63,51 @@ export function useTranscription({
     const { text, participantId } = event;
     const isFinal = event.rawResponse?.is_final ?? true;
 
-    // Get translated text for user's preferred language, fallback to original
-    const translations = (event as { translations?: Record<string, string> }).translations;
-    const translatedText = translations?.[preferredLanguage] || text;
+    // STRICT: Get translation ONLY for user's exact preferred language
+    const translations = (event as { translations?: Record<string, string> })
+      .translations;
+    const translatedText = translations?.[preferredLanguage];
+
+    // If no translation available for the exact language, skip TTS but still show original
+    const hasTranslation =
+      translatedText !== undefined && translatedText.length > 0;
+
+    if (!hasTranslation && translations) {
+      console.warn(
+        `[Transcription] No translation for "${preferredLanguage}". Available: ${Object.keys(translations).join(", ")}`,
+      );
+    }
 
     const isOwnTranscription = participantId === localParticipant?.session_id;
     const participant = daily?.participants()?.[participantId];
 
-    // Use passed username for own transcriptions, fallback to participant data
     const speakerName = isOwnTranscription
       ? username
       : participant?.user_name || "Participant";
-    const displayName = isOwnTranscription ? `${speakerName} (You)` : speakerName;
+    const displayName = isOwnTranscription
+      ? `${speakerName} (You)`
+      : speakerName;
 
-    // Show live transcript (translated for others, original for self)
-    const liveText = isOwnTranscription ? text : translatedText;
+    // Show live transcript: translated for others (in their language), original for self
+    const liveText = isOwnTranscription ? text : (translatedText ?? text);
     setLiveTranscript({ speaker: displayName, text: liveText });
 
     if (!isFinal) return;
 
-    // Clear live transcript after delay
     setTimeout(() => setLiveTranscript(null), 1500);
 
     const entry: TranscriptEntry = {
       id: crypto.randomUUID(),
       speaker: isOwnTranscription ? displayName : speakerName,
       original: text,
-      translated: translatedText,
+      translated: translatedText ?? text,
       timestamp: new Date(),
     };
 
     setTranscripts((prev) => [...prev.slice(-20), entry]);
 
-    // Play TTS for other participants' messages in user's preferred language
-    if (!isOwnTranscription) {
+    // STRICT: Play TTS ONLY if we have a translation in the exact preferred language
+    if (!isOwnTranscription && hasTranslation) {
       setCurrentTranslation(translatedText);
       playTTS(translatedText, preferredLanguage);
       setTimeout(() => setCurrentTranslation(null), 3000);
@@ -99,7 +120,7 @@ export function useTranscription({
     try {
       // Request translations for all supported languages so each user gets their preference
       const translationsConfig = Object.fromEntries(
-        SUPPORTED_LANGUAGES.map((lang) => [lang.code, "*"])
+        SUPPORTED_LANGUAGES.map((lang) => [lang.code, "*"]),
       );
 
       // Type cast needed as 'translations' is not in SDK types yet
@@ -110,7 +131,9 @@ export function useTranscription({
         profanity_filter: false,
         translations: translationsConfig,
       } as Parameters<typeof daily.startTranscription>[0]);
-      console.log("[Daily] Transcription started with translations for all languages");
+      console.log(
+        "[Daily] Transcription started with translations for all languages",
+      );
     } catch (error) {
       console.error("[Daily] Failed to start transcription:", error);
       setTranscriptionStatus("error");

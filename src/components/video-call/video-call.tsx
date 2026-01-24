@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DailyProvider } from "@daily-co/daily-react";
+
 import DailyIframe, { type DailyCall } from "@daily-co/daily-js";
+import { DailyProvider } from "@daily-co/daily-react";
 import { Loader2 } from "lucide-react";
 
-import type { VideoCallProps } from "./types";
 import { CallUI } from "./call-ui";
+import type { VideoCallProps } from "./types";
 
 // Module-level singleton to handle React Strict Mode
 let globalCallObject: DailyCall | null = null;

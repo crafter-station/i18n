@@ -1,23 +1,27 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useState } from "react";
+
 import { ArrowRight, Loader2 } from "lucide-react";
 
-import { useFingerprint } from "@/hooks/use-fingerprint";
+import { getLanguageName, type LanguageCode } from "@/lib/languages";
+
 import { LanguageSelector } from "@/components/language-selector";
-import { VideoCall } from "@/components/video-call";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { VideoCall } from "@/components/video-call";
+
+import { useFingerprint } from "@/hooks/use-fingerprint";
 
 export default function RoomPage() {
   const params = useParams();
-  const router = useRouter();
   const roomId = params.roomId as string;
   const { visitorId, isLoading: isLoadingFingerprint } = useFingerprint();
 
   const [username, setUsername] = useState("");
-  const [preferredLanguage, setPreferredLanguage] = useState("en");
+  const [preferredLanguage, setPreferredLanguage] =
+    useState<LanguageCode>("en");
   const [isJoining, setIsJoining] = useState(false);
   const [isJoined, setIsJoined] = useState(false);
   const [roomUrl, setRoomUrl] = useState<string | null>(null);
@@ -90,7 +94,9 @@ export default function RoomPage() {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-black">Your Name</label>
+              <label className="text-sm font-medium text-black">
+                Your Name
+              </label>
               <Input
                 type="text"
                 placeholder="Enter your name"
@@ -118,9 +124,7 @@ export default function RoomPage() {
 
             <Button
               onClick={handleJoin}
-              disabled={
-                !username.trim() || isJoining || isLoadingFingerprint
-              }
+              disabled={!username.trim() || isJoining || isLoadingFingerprint}
               className="w-full bg-black text-white hover:bg-neutral-800"
             >
               {isJoining || isLoadingFingerprint ? (
@@ -139,7 +143,7 @@ export default function RoomPage() {
 
           <p className="text-xs text-center text-neutral-500">
             You'll hear other participants in{" "}
-            {preferredLanguage === "en" ? "English" : preferredLanguage}
+            {getLanguageName(preferredLanguage)}
           </p>
         </div>
       </div>
