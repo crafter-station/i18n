@@ -13,11 +13,13 @@ import { useTTS } from "./use-tts";
 interface UseTranscriptionOptions {
   preferredLanguage: string;
   roomId: string;
+  username: string;
 }
 
 export function useTranscription({
   preferredLanguage,
   roomId,
+  username,
 }: UseTranscriptionOptions) {
   const daily = useDaily();
   const localParticipant = useLocalParticipant();
@@ -52,9 +54,13 @@ export function useTranscription({
     const { text, participantId } = event;
     const isFinal = event.rawResponse?.is_final ?? true;
 
-    const participant = daily?.participants()?.[participantId];
-    const speakerName = participant?.user_name || "Unknown";
     const isOwnTranscription = participantId === localParticipant?.session_id;
+    const participant = daily?.participants()?.[participantId];
+    
+    // Use passed username for own transcriptions, fallback to participant data
+    const speakerName = isOwnTranscription
+      ? username
+      : participant?.user_name || "Participant";
     const displayName = isOwnTranscription ? `${speakerName} (You)` : speakerName;
 
     // Show live transcript
