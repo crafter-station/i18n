@@ -48,6 +48,15 @@ export function CallUI({
         console.log("[Daily] Joining call...");
         await daily.join({ url: roomUrl, token });
         console.log("[Daily] Joined successfully");
+
+        // Disable auto-subscribe so we can control audio/video separately
+        daily.setSubscribeToTracksAutomatically(false);
+
+        // Subscribe to video only, mute audio - users hear TTS instead
+        daily.updateParticipants({
+          "*": { setSubscribedTracks: { video: true, audio: false } },
+        });
+
         await startTranscription();
         setIsJoining(false);
       } catch (error) {
@@ -66,9 +75,17 @@ export function CallUI({
     };
   }, [daily, roomUrl, token, startTranscription, stopTranscription]);
 
-  // Debug events
+  // Mute audio for newly joined participants (they hear TTS instead)
   useDailyEvent("participant-joined", (event) => {
-    console.log("[Daily] Participant joined:", event?.participant?.user_name);
+    const participant = event?.participant;
+    if (!participant || participant.local) return;
+
+    console.log("[Daily] Participant joined:", participant.user_name);
+
+    // Mute their audio - user will hear translated TTS instead
+    daily?.updateParticipant(participant.session_id, {
+      setSubscribedTracks: { video: true, audio: false },
+    });
   });
 
   useDailyEvent("participant-left", (event) => {

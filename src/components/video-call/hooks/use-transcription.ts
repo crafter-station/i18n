@@ -9,6 +9,7 @@ import type {
   TranscriptionStatus,
 } from "../types";
 import { useTTS } from "./use-tts";
+import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 
 interface UseTranscriptionOptions {
   preferredLanguage: string;
@@ -52,9 +53,9 @@ export function useTranscription({
     const { text, participantId } = event;
     const isFinal = event.rawResponse?.is_final ?? true;
 
-    // Get translated text if available, fallback to original
-    const translatedText =
-      (event as { translation?: { text?: string } }).translation?.text || text;
+    // Get translated text for user's preferred language, fallback to original
+    const translations = (event as { translations?: Record<string, string> }).translations;
+    const translatedText = translations?.[preferredLanguage] || text;
 
     const isOwnTranscription = participantId === localParticipant?.session_id;
     const participant = daily?.participants()?.[participantId];
@@ -96,22 +97,25 @@ export function useTranscription({
     if (!daily) return;
 
     try {
+      // Request translations for all supported languages so each user gets their preference
+      const translationsConfig = Object.fromEntries(
+        SUPPORTED_LANGUAGES.map((lang) => [lang.code, "*"])
+      );
+
       // Type cast needed as 'translations' is not in SDK types yet
       await daily.startTranscription({
         language: "multi",
         model: "nova-2",
         punctuate: true,
         profanity_filter: false,
-        translations: {
-          [preferredLanguage]: "*",
-        },
+        translations: translationsConfig,
       } as Parameters<typeof daily.startTranscription>[0]);
-      console.log("[Daily] Transcription started with translation to:", preferredLanguage);
+      console.log("[Daily] Transcription started with translations for all languages");
     } catch (error) {
       console.error("[Daily] Failed to start transcription:", error);
       setTranscriptionStatus("error");
     }
-  }, [daily, preferredLanguage]);
+  }, [daily]);
 
   const stopTranscription = useCallback(() => {
     if (!daily) return;
