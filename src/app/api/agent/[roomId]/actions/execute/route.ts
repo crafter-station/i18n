@@ -35,7 +35,7 @@ export async function POST(
     switch (action.type) {
       case "email": {
         const recipients =
-          action.metadata.recipients?.length > 0
+          action.metadata.recipients && action.metadata.recipients.length > 0
             ? action.metadata.recipients
             : DEFAULT_EMAIL_RECIPIENTS;
 
