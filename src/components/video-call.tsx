@@ -120,8 +120,12 @@ function CallUI({
     join();
 
     return () => {
-      daily.stopTranscription();
-      daily.leave();
+      // Only stop transcription if we successfully joined
+      const meetingState = daily.meetingState();
+      if (meetingState === "joined-meeting") {
+        daily.stopTranscription();
+        daily.leave();
+      }
     };
   }, [daily, roomUrl, token]);
 
