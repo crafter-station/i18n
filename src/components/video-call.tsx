@@ -27,16 +27,24 @@ interface VideoCallProps {
 
 export function VideoCall(props: VideoCallProps) {
   const [callObject, setCallObject] = useState<DailyCall | null>(null);
+  const callObjectRef = useRef<DailyCall | null>(null);
 
   useEffect(() => {
+    // Prevent duplicate instances (React Strict Mode runs effects twice)
+    if (callObjectRef.current) return;
+
     const daily = DailyIframe.createCallObject({
       audioSource: true,
       videoSource: true,
     });
+    callObjectRef.current = daily;
     setCallObject(daily);
 
     return () => {
-      daily.destroy();
+      if (callObjectRef.current) {
+        callObjectRef.current.destroy();
+        callObjectRef.current = null;
+      }
     };
   }, []);
 
