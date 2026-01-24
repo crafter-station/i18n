@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { ArrowRight, Loader2 } from "lucide-react";
 
@@ -23,6 +23,10 @@ export default function RoomPage() {
   const [preferredLanguage, setPreferredLanguage] =
     useState<LanguageCode>("en");
   const [isJoining, setIsJoining] = useState(false);
+  const [isJoined, setIsJoined] = useState(false);
+  const [roomUrl, setRoomUrl] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Load language preference from localStorage on mount
   useEffect(() => {
@@ -37,10 +41,6 @@ export default function RoomPage() {
     setPreferredLanguage(lang);
     localStorage.setItem("preferredLanguage", lang);
   };
-  const [isJoined, setIsJoined] = useState(false);
-  const [roomUrl, setRoomUrl] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const handleJoin = async () => {
     if (!visitorId || !username.trim()) return;

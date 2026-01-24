@@ -11,9 +11,8 @@ export async function POST(req: Request) {
       return Response.json({ error: "No text provided" }, { status: 400 });
     }
 
-    // STRICT: Validate language code - no fallbacks
+    // Validate language code
     if (!language || !isValidLanguageCode(language)) {
-      console.error("[TTS API] Invalid language code:", language);
       return Response.json(
         { error: `Invalid language code: ${language}` },
         { status: 400 },
@@ -22,18 +21,11 @@ export async function POST(req: Request) {
 
     const voiceId = LANGUAGE_VOICES[language];
     if (!voiceId) {
-      console.error("[TTS API] No voice configured for language:", language);
       return Response.json(
         { error: `No voice available for language: ${language}` },
         { status: 400 },
       );
     }
-
-    console.log("[TTS API] Generating speech:", {
-      language,
-      voiceId,
-      textLength: text.length,
-    });
 
     const result = await generateSpeech({
       model: elevenlabs.speech("eleven_flash_v2_5"),
@@ -59,7 +51,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-    console.error("TTS error:", error);
+    console.error("[TTS] Error:", error);
     return Response.json({ error: "TTS failed" }, { status: 500 });
   }
 }

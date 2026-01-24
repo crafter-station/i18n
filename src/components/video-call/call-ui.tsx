@@ -41,7 +41,7 @@ export function CallUI({
     transcriptionStatus,
     startTranscription,
     stopTranscription,
-  } = useTranscription({ preferredLanguage, username });
+  } = useTranscription({ preferredLanguage });
 
   // Join call and start transcription
   useEffect(() => {
@@ -49,9 +49,7 @@ export function CallUI({
 
     const join = async () => {
       try {
-        console.log("[Daily] Joining call...");
         await daily.join({ url: roomUrl, token });
-        console.log("[Daily] Joined successfully");
 
         // Disable auto-subscribe so we can control audio/video separately
         daily.setSubscribeToTracksAutomatically(false);
@@ -85,23 +83,16 @@ export function CallUI({
     const participant = event?.participant;
     if (!participant || participant.local) return;
 
-    console.log("[Daily] Participant joined:", participant.user_name);
-
-    // Mute their audio - user will hear translated TTS instead
     daily?.updateParticipant(participant.session_id, {
       setSubscribedTracks: { video: true, audio: false },
     });
   });
 
-  useDailyEvent("participant-left", (event) => {
-    console.log("[Daily] Participant left:", event?.participant?.user_name);
-  });
-
   const toggleMute = useCallback(() => {
     if (!daily) return;
-    // isMuted=false means audio is ON, so pass false to turn it OFF
-    daily.setLocalAudio(isMuted);
-    setIsMuted(!isMuted);
+    const newMutedState = !isMuted;
+    daily.setLocalAudio(!newMutedState);
+    setIsMuted(newMutedState);
   }, [daily, isMuted]);
 
   const toggleVideo = useCallback(() => {
@@ -187,10 +178,7 @@ export function CallUI({
 
       {/* Share modal - shows when joining */}
       {showShareModal && (
-        <ShareModal
-          roomId={roomId}
-          onClose={() => setShowShareModal(false)}
-        />
+        <ShareModal roomId={roomId} onClose={() => setShowShareModal(false)} />
       )}
     </div>
   );
