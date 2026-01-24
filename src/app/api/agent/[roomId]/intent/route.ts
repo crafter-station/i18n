@@ -6,6 +6,8 @@ import {
   EmailActionSchema,
 } from "@/lib/agent-schemas";
 
+const DEFAULT_EMAIL_RECIPIENTS = ["hi@cueva.io", "cris@kebo.app"];
+
 const IntentDetectionSchema = z.object({
   hasEmailIntent: z.boolean(),
   confidence: z.enum(["high", "medium", "low"]),
@@ -66,7 +68,7 @@ If hasEmailIntent is true, generate a complete email action with:
 - Unique ID (format: email_intent_[timestamp])
 - Clear subject line based on context
 - Professional email body draft
-- Best guess at recipients based on context (use placeholders like "[Team]" if unclear)`,
+- For recipients, always use these default emails: ${DEFAULT_EMAIL_RECIPIENTS.join(", ")}`,
       temperature: 0.2,
     });
 
