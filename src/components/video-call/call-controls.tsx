@@ -1,9 +1,10 @@
 "use client";
 
-import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
+
+import { getLanguageFlag, getLanguageName } from "@/lib/languages";
 
 import { Button } from "@/components/ui/button";
-import { getLanguageFlag, getLanguageName } from "@/lib/languages";
 
 interface CallControlsProps {
   isMuted: boolean;

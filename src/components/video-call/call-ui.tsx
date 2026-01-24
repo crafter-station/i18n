@@ -21,7 +21,6 @@ export function CallUI({
   token,
   preferredLanguage,
   username,
-  roomId,
 }: VideoCallProps) {
   const daily = useDaily();
   const localParticipant = useLocalParticipant();
@@ -38,7 +37,7 @@ export function CallUI({
     transcriptionStatus,
     startTranscription,
     stopTranscription,
-  } = useTranscription({ preferredLanguage, username });
+  } = useTranscription({ preferredLanguage });
 
   // Join call and start transcription
   useEffect(() => {
@@ -46,9 +45,7 @@ export function CallUI({
 
     const join = async () => {
       try {
-        console.log("[Daily] Joining call...");
         await daily.join({ url: roomUrl, token });
-        console.log("[Daily] Joined successfully");
 
         // Disable auto-subscribe so we can control audio/video separately
         daily.setSubscribeToTracksAutomatically(false);
@@ -81,16 +78,9 @@ export function CallUI({
     const participant = event?.participant;
     if (!participant || participant.local) return;
 
-    console.log("[Daily] Participant joined:", participant.user_name);
-
-    // Mute their audio - user will hear translated TTS instead
     daily?.updateParticipant(participant.session_id, {
       setSubscribedTracks: { video: true, audio: false },
     });
-  });
-
-  useDailyEvent("participant-left", (event) => {
-    console.log("[Daily] Participant left:", event?.participant?.user_name);
   });
 
   const toggleMute = useCallback(() => {
@@ -98,7 +88,6 @@ export function CallUI({
     const newMutedState = !isMuted;
     daily.setLocalAudio(!newMutedState);
     setIsMuted(newMutedState);
-    console.log("[Daily] Mute:", newMutedState);
   }, [daily, isMuted]);
 
   const toggleVideo = useCallback(() => {

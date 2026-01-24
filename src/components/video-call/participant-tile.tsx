@@ -1,7 +1,8 @@
 "use client";
 
-import { useVideoTrack, useAudioTrack } from "@daily-co/daily-react";
 import { useEffect, useRef } from "react";
+
+import { useAudioTrack, useVideoTrack } from "@daily-co/daily-react";
 
 import { getLanguageFlag } from "@/lib/languages";
 

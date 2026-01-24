@@ -22,24 +22,14 @@ export async function POST(request: Request) {
 
     const targetLangName = getLanguageName(targetLanguage);
 
-    console.log("[Translate API] Translating to:", targetLangName);
-
     const { text: translatedText } = await generateText({
       model: groq("llama-3.1-8b-instant"),
-      prompt: `Translate the following text to ${targetLangName}. Only respond with the translation, nothing else. Do not add quotes or explanations.
-
-Text: ${text}`,
-    });
-
-    console.log("[Translate API]", {
-      to: targetLangName,
-      original: text.slice(0, 30),
-      translated: translatedText.trim().slice(0, 30),
+      prompt: `Translate to ${targetLangName}. Only respond with the translation, nothing else:\n\n${text}`,
     });
 
     return NextResponse.json({ translatedText: translatedText.trim() });
   } catch (error) {
-    console.error("[Translate API] Error:", error);
+    console.error("[Translate] Error:", error);
     return NextResponse.json({ error: "Translation failed" }, { status: 500 });
   }
 }

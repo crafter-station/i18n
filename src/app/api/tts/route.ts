@@ -1,5 +1,5 @@
-import { experimental_generateSpeech as generateSpeech } from "ai";
 import { elevenlabs } from "@ai-sdk/elevenlabs";
+import { experimental_generateSpeech as generateSpeech } from "ai";
 
 import { LANGUAGE_VOICES } from "@/lib/languages";
 
@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     }
 
     const voiceId = LANGUAGE_VOICES[language] || LANGUAGE_VOICES.en;
-    console.log("[TTS API] Generating speech:", { language, voiceId, textLength: text.length });
 
     const result = await generateSpeech({
       model: elevenlabs.speech("eleven_flash_v2_5"),
@@ -38,7 +37,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-    console.error("TTS error:", error);
+    console.error("[TTS] Error:", error);
     return Response.json({ error: "TTS failed" }, { status: 500 });
   }
 }

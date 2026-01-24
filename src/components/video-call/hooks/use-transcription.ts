@@ -19,7 +19,6 @@ import { useTTS } from "./use-tts";
 
 interface UseTranscriptionOptions {
   preferredLanguage: LanguageCode;
-  username: string;
 }
 
 // Translate using Groq when Daily's translations aren't available
@@ -34,22 +33,17 @@ async function translateWithGroq(
       body: JSON.stringify({ text, targetLanguage }),
     });
 
-    if (!res.ok) {
-      console.error("[Translate] API error:", res.status);
-      return text;
-    }
+    if (!res.ok) return text;
 
     const { translatedText } = await res.json();
     return translatedText || text;
-  } catch (error) {
-    console.error("[Translate] Error:", error);
+  } catch {
     return text;
   }
 }
 
 export function useTranscription({
   preferredLanguage,
-  username,
 }: UseTranscriptionOptions) {
   const daily = useDaily();
   const localParticipant = useLocalParticipant();
@@ -66,18 +60,15 @@ export function useTranscription({
     useState<TranscriptionStatus>("starting");
 
   // Transcription lifecycle events
-  useDailyEvent("transcription-started", (event) => {
-    console.log("[Daily] Transcription started:", event);
+  useDailyEvent("transcription-started", () => {
     setTranscriptionStatus("active");
   });
 
   useDailyEvent("transcription-stopped", () => {
-    console.log("[Daily] Transcription stopped");
     setTranscriptionStatus("stopped");
   });
 
-  useDailyEvent("transcription-error", (event) => {
-    console.error("[Daily] Transcription error:", event);
+  useDailyEvent("transcription-error", () => {
     setTranscriptionStatus("error");
   });
 
@@ -88,63 +79,46 @@ export function useTranscription({
     const { text, participantId } = event;
     const isFinal = event.rawResponse?.is_final ?? true;
 
-    const isOwnTranscription = participantId === localParticipant?.session_id;
-
-    // Skip own transcriptions - user should never hear themselves
-    if (isOwnTranscription) {
-      console.log("[Transcription] Skipping own transcription");
-      return;
-    }
+    // Skip own transcriptions
+    if (participantId === localParticipant?.session_id) return;
 
     const participant = daily?.participants()?.[participantId];
     const speakerName = participant?.user_name || "Participant";
 
-    // For non-final transcriptions, just show live preview with original text
+    // For non-final transcriptions, show live preview
     if (!isFinal) {
       setLiveTranscript({ speaker: speakerName, text });
       return;
     }
 
-    // Try to get translation from Daily first
+    // Try Daily translation first, fallback to Groq
     const translations = (event as { translations?: Record<string, string> })
       .translations;
-    let translatedText = translations?.[preferredLanguage];
+    const translatedText =
+      translations?.[preferredLanguage] ||
+      (await translateWithGroq(text, preferredLanguage));
 
-    // If no Daily translation, use Groq
-    if (!translatedText) {
-      console.log("[Transcription] No Daily translation, using Groq...");
-      translatedText = await translateWithGroq(text, preferredLanguage);
-    }
-
-    console.log("[Transcription] Processing:", {
-      speaker: speakerName,
-      original: text.slice(0, 30),
-      translated: translatedText.slice(0, 30),
-      usedGroq: !translations?.[preferredLanguage],
-    });
-
-    // Show translated text in live transcript
+    // Update UI and play TTS in parallel
     setLiveTranscript({ speaker: speakerName, text: translatedText });
-    setTimeout(() => setLiveTranscript(null), 1500);
-
-    const entry: TranscriptEntry = {
-      id: crypto.randomUUID(),
-      speaker: speakerName,
-      original: text,
-      translated: translatedText,
-      timestamp: new Date(),
-    };
-
-    setTranscripts((prev) => [...prev.slice(-20), entry]);
-
-    // Play TTS with translated text
-    console.log("[Transcription] Playing TTS:", {
-      text: translatedText.slice(0, 30),
-      language: preferredLanguage,
-    });
-
     setCurrentTranslation(translatedText);
+
+    // Start TTS immediately (don't wait)
     playTTS(translatedText, preferredLanguage);
+
+    // Add to transcript history
+    setTranscripts((prev) => [
+      ...prev.slice(-20),
+      {
+        id: crypto.randomUUID(),
+        speaker: speakerName,
+        original: text,
+        translated: translatedText,
+        timestamp: new Date(),
+      },
+    ]);
+
+    // Clear UI states after delay
+    setTimeout(() => setLiveTranscript(null), 1500);
     setTimeout(() => setCurrentTranslation(null), 3000);
   });
 
@@ -152,12 +126,10 @@ export function useTranscription({
     if (!daily) return;
 
     try {
-      // Request translations for ALL supported languages so each user gets their preference
       const translationsConfig = Object.fromEntries(
         SUPPORTED_LANGUAGES.map((lang) => [lang.code, "*"]),
       );
 
-      // Type cast needed as 'translations' is not in SDK types yet
       await daily.startTranscription({
         language: "multi",
         model: "nova-2",
@@ -166,31 +138,23 @@ export function useTranscription({
         includeRawResponse: true,
         translations: translationsConfig,
       } as Parameters<typeof daily.startTranscription>[0]);
-      console.log(
-        "[Daily] Transcription started with translations for all languages",
-      );
     } catch (error: unknown) {
-      // If transcription is already running (started by another participant), that's fine
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       if (
         errorMessage.toLowerCase().includes("already") ||
         errorMessage.toLowerCase().includes("in progress")
       ) {
-        console.log(
-          "[Daily] Transcription already running, not overriding config",
-        );
         setTranscriptionStatus("active");
       } else {
-        console.error("[Daily] Failed to start transcription:", error);
+        console.error("[Transcription] Failed to start:", error);
         setTranscriptionStatus("error");
       }
     }
   }, [daily]);
 
   const stopTranscription = useCallback(() => {
-    if (!daily) return;
-    daily.stopTranscription();
+    daily?.stopTranscription();
   }, [daily]);
 
   return {
