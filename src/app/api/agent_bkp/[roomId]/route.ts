@@ -4,9 +4,12 @@ import {
   stepCountIs,
   type UIMessage,
 } from "ai";
+import { eq } from "drizzle-orm";
 
-import { ChatRequestSchema } from "@/lib/agent-schemas";
+import { db } from "@/db";
+import { transcripts, rooms } from "@/db/schema";
 import { webSearchTool } from "@/tools/web-search";
+import mockData from "@/mock/transcripts.json";
 
 export const maxDuration = 30;
 
@@ -16,43 +19,33 @@ export async function POST(
 ) {
   try {
     const { roomId } = await params;
-    const body = await req.json();
+    const { messages }: { messages: UIMessage[] } = await req.json();
 
-    // Validate request body
-    let validatedRequest;
-    try {
-      validatedRequest = ChatRequestSchema.parse(body);
-    } catch (validationError) {
-      console.error("Validation error:", validationError);
-      return Response.json(
-        { error: "Invalid request format" },
-        { status: 400 },
-      );
+    // Try to find transcripts in database
+    let roomTranscripts = await db.query.transcripts.findMany({
+      where: eq(transcripts.roomId, roomId),
+      orderBy: (transcripts, { asc }) => [asc(transcripts.timestamp)],
+    });
+
+    // Use mock data if no transcripts found
+    if (roomTranscripts.length === 0) {
+      roomTranscripts = mockData.transcripts.map((t) => ({
+        id: t.id,
+        roomId,
+        participantId: t.participantId,
+        speakerName: t.speakerName,
+        originalText: t.originalText,
+        originalLanguage: t.originalLanguage,
+        translatedTexts: t.translatedTexts as unknown as Record<string, string>,
+        timestamp: new Date(t.timestamp),
+      }));
     }
 
-    const { transcripts: clientTranscripts, messages } = validatedRequest;
-
-    if (!messages || !Array.isArray(messages)) {
-      console.error("Messages not found or not an array:", messages);
-      return Response.json(
-        { error: "Messages array is required" },
-        { status: 400 },
-      );
-    }
-
-    // Convert simple messages to UIMessage format for convertToModelMessages
-    const formattedMessages = messages.map((msg: any, idx: number) => ({
-      id: `msg-${idx}`,
-      role: msg.role,
-      content: msg.content,
-      parts: [{ type: "text" as const, text: msg.content }],
-    }));
-
-    // Build transcript context from client-provided transcripts
-    const transcriptContext = clientTranscripts
+    const transcriptContext = roomTranscripts
       .map((t) => {
         const time = new Date(t.timestamp).toLocaleTimeString();
-        return `[${time}] ${t.speaker}: ${t.original}`;
+        const speaker = t.speakerName || "Unknown";
+        return `[${time}] ${speaker} (${t.originalLanguage}): ${t.originalText}`;
       })
       .join("\n");
 
@@ -79,7 +72,7 @@ Guidelines:
     const result = streamText({
       model: "openai/gpt-5.1",
       system: systemPrompt,
-      messages: await convertToModelMessages(formattedMessages),
+      messages: await convertToModelMessages(messages),
       tools: {
         webSearch: webSearchTool,
       },
