@@ -10,10 +10,12 @@ import {
 } from "@daily-co/daily-react";
 import { Loader2 } from "lucide-react";
 
+import { AgentPanel } from "@/components/agent-panel";
+
 import { CallControls } from "./call-controls";
 import { useTranscription } from "./hooks/use-transcription";
 import { ParticipantTile } from "./participant-tile";
-import { TranscriptPanel } from "./transcript-panel";
+import { ShareModal } from "./share-modal";
 import type { VideoCallProps } from "./types";
 
 export function CallUI({
@@ -21,6 +23,7 @@ export function CallUI({
   token,
   preferredLanguage,
   username,
+  roomId,
 }: VideoCallProps) {
   const daily = useDaily();
   const localParticipant = useLocalParticipant();
@@ -29,6 +32,7 @@ export function CallUI({
   const [isJoining, setIsJoining] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const {
     transcripts,
@@ -57,6 +61,7 @@ export function CallUI({
 
         await startTranscription();
         setIsJoining(false);
+        setShowShareModal(true);
       } catch (error) {
         console.error("[Daily] Failed to join:", error);
       }
@@ -92,7 +97,8 @@ export function CallUI({
 
   const toggleVideo = useCallback(() => {
     if (!daily) return;
-    daily.setLocalVideo(!isVideoOff);
+    // isVideoOff=false means video is ON, so pass false to turn it OFF
+    daily.setLocalVideo(isVideoOff);
     setIsVideoOff(!isVideoOff);
   }, [daily, isVideoOff]);
 
@@ -114,48 +120,50 @@ export function CallUI({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col relative">
-      {/* Translation toast */}
+    <div className="h-screen bg-neutral-900 flex flex-col overflow-hidden">
+      {/* Translation overlay */}
       {currentTranslation && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-white/10 backdrop-blur-xl text-white px-8 py-4 rounded-2xl max-w-xl text-center border border-white/10 shadow-2xl">
-          <p className="text-lg font-light">{currentTranslation}</p>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/80 text-white px-6 py-3 rounded-lg max-w-xl text-center animate-fade-in">
+          <p className="text-lg">{currentTranslation}</p>
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 flex gap-4 p-4 pb-0">
-        {/* Video grid */}
-        <div className="flex-1">
-          <div
-            className={`grid gap-3 h-full ${
-              participantIds.length === 0
-                ? "grid-cols-1"
-                : participantIds.length === 1
-                  ? "grid-cols-2"
-                  : "grid-cols-2 grid-rows-2"
-            }`}
-          >
-            {localParticipant && (
-              <ParticipantTile
-                sessionId={localParticipant.session_id}
-                username={username}
-                isLocal
-                preferredLanguage={preferredLanguage}
-              />
-            )}
-            {participantIds.map((id) => (
-              <ParticipantTile key={id} sessionId={id} />
-            ))}
-          </div>
-        </div>
+      {/* Video grid - takes remaining space */}
+      <div className="flex-1 p-4 pb-0 overflow-hidden">
+        <div
+          className={`grid gap-4 h-full ${
+            participantIds.length === 0
+              ? "grid-cols-1"
+              : participantIds.length === 1
+                ? "grid-cols-2"
+                : "grid-cols-2 grid-rows-2"
+          }`}
+        >
+          {/* Local participant */}
+          {localParticipant && (
+            <ParticipantTile
+              sessionId={localParticipant.session_id}
+              username={username}
+              isLocal
+              preferredLanguage={preferredLanguage}
+            />
+          )}
 
-        {/* Transcript sidebar */}
-        <TranscriptPanel
-          transcripts={transcripts}
-          liveTranscript={liveTranscript}
-          transcriptionStatus={transcriptionStatus}
-        />
+          {/* Remote participants */}
+          {participantIds.map((id) => (
+            <ParticipantTile key={id} sessionId={id} />
+          ))}
+        </div>
       </div>
+
+      {/* Floating agent panel */}
+      <AgentPanel
+        preferredLanguage={preferredLanguage}
+        transcripts={transcripts}
+        liveTranscript={liveTranscript}
+        transcriptionStatus={transcriptionStatus}
+        roomId={roomId}
+      />
 
       {/* Controls */}
       <CallControls
@@ -165,7 +173,13 @@ export function CallUI({
         onToggleMute={toggleMute}
         onToggleVideo={toggleVideo}
         onLeave={leaveCall}
+        onShowShare={() => setShowShareModal(true)}
       />
+
+      {/* Share modal - shows when joining */}
+      {showShareModal && (
+        <ShareModal roomId={roomId} onClose={() => setShowShareModal(false)} />
+      )}
     </div>
   );
 }

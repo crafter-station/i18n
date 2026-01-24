@@ -13,6 +13,23 @@ export const SUPPORTED_LANGUAGES = [
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
 
+const SUPPORTED_LANGUAGE_CODES = new Set<string>(
+  SUPPORTED_LANGUAGES.map((l) => l.code),
+);
+
+export function isValidLanguageCode(code: string): code is LanguageCode {
+  return SUPPORTED_LANGUAGE_CODES.has(code);
+}
+
+export function assertLanguageCode(code: string): LanguageCode {
+  if (!isValidLanguageCode(code)) {
+    throw new Error(
+      `Invalid language code: ${code}. Must be one of: ${SUPPORTED_LANGUAGES.map((l) => l.code).join(", ")}`,
+    );
+  }
+  return code;
+}
+
 export function getLanguageName(code: string): string {
   return (
     SUPPORTED_LANGUAGES.find((l) => l.code === code)?.name || code.toUpperCase()

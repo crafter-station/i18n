@@ -1,11 +1,11 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { ArrowRight, Loader2 } from "lucide-react";
 
-import type { LanguageCode } from "@/lib/languages";
+import { getLanguageName, type LanguageCode } from "@/lib/languages";
 
 import { LanguageSelector } from "@/components/language-selector";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ import { useFingerprint } from "@/hooks/use-fingerprint";
 
 export default function RoomPage() {
   const params = useParams();
-  const router = useRouter();
   const roomId = params.roomId as string;
   const { visitorId, isLoading: isLoadingFingerprint } = useFingerprint();
 
@@ -28,6 +27,20 @@ export default function RoomPage() {
   const [roomUrl, setRoomUrl] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Load language preference from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("preferredLanguage");
+    if (stored) {
+      setPreferredLanguage(stored as LanguageCode);
+    }
+  }, []);
+
+  // Save language preference to localStorage when changed
+  const handleLanguageChange = (lang: LanguageCode) => {
+    setPreferredLanguage(lang);
+    localStorage.setItem("preferredLanguage", lang);
+  };
 
   const handleJoin = async () => {
     if (!visitorId || !username.trim()) return;
@@ -93,7 +106,13 @@ export default function RoomPage() {
             </p>
           </div>
 
-          <div className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleJoin();
+            }}
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <label className="text-sm font-medium text-black">
                 Your Name
@@ -114,7 +133,7 @@ export default function RoomPage() {
               </label>
               <LanguageSelector
                 value={preferredLanguage}
-                onChange={setPreferredLanguage}
+                onChange={handleLanguageChange}
                 disabled={isJoining}
               />
             </div>
@@ -124,9 +143,9 @@ export default function RoomPage() {
             )}
 
             <Button
-              onClick={handleJoin}
+              type="submit"
               disabled={!username.trim() || isJoining || isLoadingFingerprint}
-              className="w-full bg-black text-white hover:bg-neutral-800"
+              className="w-full bg-black text-white hover:bg-neutral-800 cursor-pointer"
             >
               {isJoining || isLoadingFingerprint ? (
                 <>
@@ -140,11 +159,11 @@ export default function RoomPage() {
                 </>
               )}
             </Button>
-          </div>
+          </form>
 
           <p className="text-xs text-center text-neutral-500">
             You'll hear other participants in{" "}
-            {preferredLanguage === "en" ? "English" : preferredLanguage}
+            {getLanguageName(preferredLanguage)}
           </p>
         </div>
       </div>

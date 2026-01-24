@@ -30,7 +30,7 @@ export function LanguageSelector({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="w-full justify-between"
+          className="w-full justify-between cursor-pointer"
           disabled={disabled}
         >
           <span className="flex items-center gap-2">
@@ -44,8 +44,8 @@ export function LanguageSelector({
         {SUPPORTED_LANGUAGES.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => onChange(lang.code)}
-            className="flex items-center gap-2"
+            onClick={() => onChange(lang.code as LanguageCode)}
+            className="flex items-center gap-2 cursor-pointer"
           >
             <span>{lang.flag}</span>
             <span>{lang.name}</span>

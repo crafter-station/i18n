@@ -2,6 +2,8 @@
 
 import { useCallback, useRef } from "react";
 
+import type { LanguageCode } from "@/lib/languages";
+
 export function useTTS() {
   const audioQueueRef = useRef<string[]>([]);
   const isPlayingRef = useRef(false);
@@ -30,7 +32,7 @@ export function useTTS() {
   }, []);
 
   const playTTS = useCallback(
-    async (text: string, language: string) => {
+    async (text: string, language: LanguageCode) => {
       try {
         const res = await fetch("/api/tts", {
           method: "POST",

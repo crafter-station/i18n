@@ -1,5 +1,4 @@
 import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -22,14 +21,14 @@ const ActionItemSchema = z.object({
         subject: z.string(),
         emailBody: z.string(),
       }),
-    })
+    }),
   ),
   summary: z.string(),
 });
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ roomId: string }> }
+  { params }: { params: Promise<{ roomId: string }> },
 ) {
   try {
     const { roomId } = await params;
@@ -86,7 +85,7 @@ export async function GET(
       .join("\n");
 
     const result = await generateObject({
-      model: openai("gpt-5.1"),
+      model: "openai/gpt-5.1",
       schema: ActionItemSchema,
       prompt: `Analyze this meeting transcript and extract action items.
 
@@ -115,7 +114,7 @@ Prioritize actions based on urgency mentioned in the conversation.`,
     console.error("Action extraction error:", error);
     return Response.json(
       { error: "Failed to extract actions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

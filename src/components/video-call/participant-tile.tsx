@@ -4,13 +4,13 @@ import { useEffect, useRef } from "react";
 
 import { useAudioTrack, useVideoTrack } from "@daily-co/daily-react";
 
-import { getLanguageFlag } from "@/lib/languages";
+import { getLanguageFlag, type LanguageCode } from "@/lib/languages";
 
 interface ParticipantTileProps {
   sessionId: string;
   username?: string;
   isLocal?: boolean;
-  preferredLanguage?: string;
+  preferredLanguage?: LanguageCode;
 }
 
 export function ParticipantTile({

@@ -1,7 +1,7 @@
 import { elevenlabs } from "@ai-sdk/elevenlabs";
 import { experimental_generateSpeech as generateSpeech } from "ai";
 
-import { LANGUAGE_VOICES } from "@/lib/languages";
+import { isValidLanguageCode, LANGUAGE_VOICES } from "@/lib/languages";
 
 export async function POST(req: Request) {
   try {
@@ -11,7 +11,21 @@ export async function POST(req: Request) {
       return Response.json({ error: "No text provided" }, { status: 400 });
     }
 
-    const voiceId = LANGUAGE_VOICES[language] || LANGUAGE_VOICES.en;
+    // Validate language code
+    if (!language || !isValidLanguageCode(language)) {
+      return Response.json(
+        { error: `Invalid language code: ${language}` },
+        { status: 400 },
+      );
+    }
+
+    const voiceId = LANGUAGE_VOICES[language];
+    if (!voiceId) {
+      return Response.json(
+        { error: `No voice available for language: ${language}` },
+        { status: 400 },
+      );
+    }
 
     const result = await generateSpeech({
       model: elevenlabs.speech("eleven_flash_v2_5"),
