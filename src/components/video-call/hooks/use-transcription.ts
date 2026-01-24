@@ -22,6 +22,31 @@ interface UseTranscriptionOptions {
   username: string;
 }
 
+// Translate using Groq when Daily's translations aren't available
+async function translateWithGroq(
+  text: string,
+  targetLanguage: string,
+): Promise<string> {
+  try {
+    const res = await fetch("/api/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, targetLanguage }),
+    });
+
+    if (!res.ok) {
+      console.error("[Translate] API error:", res.status);
+      return text;
+    }
+
+    const { translatedText } = await res.json();
+    return translatedText || text;
+  } catch (error) {
+    console.error("[Translate] Error:", error);
+    return text;
+  }
+}
+
 export function useTranscription({
   preferredLanguage,
   username,
@@ -58,40 +83,12 @@ export function useTranscription({
 
   // Handle transcription messages
   useDailyEvent("transcription-message", async (event) => {
-    console.log("[Transcription] Event received:", event);
-
     if (!event?.text) return;
 
     const { text, participantId } = event;
     const isFinal = event.rawResponse?.is_final ?? true;
 
-    // Get translation for user's preferred language (translations is Record<langCode, text>)
-    const translations = (event as { translations?: Record<string, string> })
-      .translations;
-    const translatedText = translations?.[preferredLanguage] ?? text;
-
-    // Check if we have a valid translation (different from original)
-    const hasTranslation =
-      translations?.[preferredLanguage] !== undefined &&
-      translations[preferredLanguage].length > 0;
-
-    console.log("[Transcription] Translation check:", {
-      preferredLanguage,
-      hasTranslation,
-      availableTranslations: translations ? Object.keys(translations) : null,
-      original: text.slice(0, 30),
-      translated: translatedText.slice(0, 30),
-    });
-
     const isOwnTranscription = participantId === localParticipant?.session_id;
-    const participant = daily?.participants()?.[participantId];
-
-    const speakerName = isOwnTranscription
-      ? username
-      : participant?.user_name || "Participant";
-    const displayName = isOwnTranscription
-      ? `${speakerName} (You)`
-      : speakerName;
 
     // Skip own transcriptions - user should never hear themselves
     if (isOwnTranscription) {
@@ -99,11 +96,35 @@ export function useTranscription({
       return;
     }
 
-    // Show live transcript
-    setLiveTranscript({ speaker: displayName, text: translatedText });
+    const participant = daily?.participants()?.[participantId];
+    const speakerName = participant?.user_name || "Participant";
 
-    if (!isFinal) return;
+    // For non-final transcriptions, just show live preview with original text
+    if (!isFinal) {
+      setLiveTranscript({ speaker: speakerName, text });
+      return;
+    }
 
+    // Try to get translation from Daily first
+    const translations = (event as { translations?: Record<string, string> })
+      .translations;
+    let translatedText = translations?.[preferredLanguage];
+
+    // If no Daily translation, use Groq
+    if (!translatedText) {
+      console.log("[Transcription] No Daily translation, using Groq...");
+      translatedText = await translateWithGroq(text, preferredLanguage);
+    }
+
+    console.log("[Transcription] Processing:", {
+      speaker: speakerName,
+      original: text.slice(0, 30),
+      translated: translatedText.slice(0, 30),
+      usedGroq: !translations?.[preferredLanguage],
+    });
+
+    // Show translated text in live transcript
+    setLiveTranscript({ speaker: speakerName, text: translatedText });
     setTimeout(() => setLiveTranscript(null), 1500);
 
     const entry: TranscriptEntry = {
@@ -116,9 +137,8 @@ export function useTranscription({
 
     setTranscripts((prev) => [...prev.slice(-20), entry]);
 
-    // Play TTS for other participants (use translation if available, otherwise original)
+    // Play TTS with translated text
     console.log("[Transcription] Playing TTS:", {
-      speaker: speakerName,
       text: translatedText.slice(0, 30),
       language: preferredLanguage,
     });
