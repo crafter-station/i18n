@@ -38,14 +38,20 @@ export function TranscriptPanel({
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
-        {liveTranscript && <LiveTranscriptCard transcript={liveTranscript} />}
-
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 min-h-0">
         {transcripts.length === 0 && !liveTranscript && <EmptyState />}
 
-        {transcripts.map((entry) => (
-          <TranscriptCard key={entry.id} entry={entry} />
+        {/* Transcript entries - oldest first */}
+        {transcripts.map((entry, index) => (
+          <TranscriptCard
+            key={entry.id}
+            entry={entry}
+            isNew={index === transcripts.length - 1}
+          />
         ))}
+
+        {/* Live transcript at bottom - shows what's being said now */}
+        {liveTranscript && <LiveTranscriptCard transcript={liveTranscript} />}
 
         <div ref={transcriptEndRef} />
       </div>
@@ -73,12 +79,13 @@ function StatusIndicator({ status }: { status: TranscriptionStatus }) {
 
 function LiveTranscriptCard({ transcript }: { transcript: LiveTranscript }) {
   return (
-    <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
-      <div className="flex items-center gap-2 mb-1.5">
+    <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 animate-in fade-in duration-200">
+      <div className="flex items-center gap-2 mb-1">
         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
         <span className="text-xs font-medium text-blue-400">
           {transcript.speaker}
         </span>
+        <span className="text-[10px] text-blue-400/50">speaking...</span>
       </div>
       <p className="text-sm text-neutral-200 leading-relaxed">
         {transcript.text}
@@ -101,12 +108,22 @@ function EmptyState() {
   );
 }
 
-function TranscriptCard({ entry }: { entry: TranscriptEntry }) {
+function TranscriptCard({
+  entry,
+  isNew,
+}: {
+  entry: TranscriptEntry;
+  isNew?: boolean;
+}) {
   const showOriginal = entry.original !== entry.translated;
 
   return (
-    <div className="group p-3 rounded-xl bg-white/5 hover:bg-white/[0.07] transition-colors">
-      <div className="flex items-center gap-2 mb-1.5">
+    <div
+      className={`p-3 rounded-xl bg-white/5 hover:bg-white/[0.07] transition-all duration-300 ease-out ${
+        isNew ? "animate-in fade-in slide-in-from-bottom-2" : ""
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-1">
         <span className="text-xs font-medium text-neutral-400">
           {entry.speaker}
         </span>
@@ -118,7 +135,7 @@ function TranscriptCard({ entry }: { entry: TranscriptEntry }) {
         </span>
       </div>
       {showOriginal && (
-        <p className="text-xs text-neutral-500 mb-1 line-through decoration-neutral-700">
+        <p className="text-xs text-neutral-500/70 mb-0.5 line-through decoration-neutral-600">
           {entry.original}
         </p>
       )}
