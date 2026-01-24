@@ -12,13 +12,11 @@ import { useTTS } from "./use-tts";
 
 interface UseTranscriptionOptions {
   preferredLanguage: string;
-  roomId: string;
   username: string;
 }
 
 export function useTranscription({
   preferredLanguage,
-  roomId,
   username,
 }: UseTranscriptionOptions) {
   const daily = useDaily();
@@ -54,68 +52,43 @@ export function useTranscription({
     const { text, participantId } = event;
     const isFinal = event.rawResponse?.is_final ?? true;
 
+    // Get translated text if available, fallback to original
+    const translatedText =
+      (event as { translation?: { text?: string } }).translation?.text || text;
+
     const isOwnTranscription = participantId === localParticipant?.session_id;
     const participant = daily?.participants()?.[participantId];
-    
+
     // Use passed username for own transcriptions, fallback to participant data
     const speakerName = isOwnTranscription
       ? username
       : participant?.user_name || "Participant";
     const displayName = isOwnTranscription ? `${speakerName} (You)` : speakerName;
 
-    // Show live transcript
-    setLiveTranscript({ speaker: displayName, text });
+    // Show live transcript (translated for others, original for self)
+    const liveText = isOwnTranscription ? text : translatedText;
+    setLiveTranscript({ speaker: displayName, text: liveText });
 
     if (!isFinal) return;
 
     // Clear live transcript after delay
     setTimeout(() => setLiveTranscript(null), 1500);
 
-    // Own transcriptions: show without translation
-    if (isOwnTranscription) {
-      const entry: TranscriptEntry = {
-        id: crypto.randomUUID(),
-        speaker: displayName,
-        original: text,
-        translated: text,
-        timestamp: new Date(),
-      };
-      setTranscripts((prev) => [...prev.slice(-20), entry]);
-      return;
-    }
+    const entry: TranscriptEntry = {
+      id: crypto.randomUUID(),
+      speaker: isOwnTranscription ? displayName : speakerName,
+      original: text,
+      translated: translatedText,
+      timestamp: new Date(),
+    };
 
-    // Translate others' transcriptions
-    try {
-      const res = await fetch("/api/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          fromLang: "auto",
-          toLang: preferredLanguage,
-          roomId,
-          participantId,
-          speakerName,
-        }),
-      });
+    setTranscripts((prev) => [...prev.slice(-20), entry]);
 
-      const { translatedText } = await res.json();
-
-      const entry: TranscriptEntry = {
-        id: crypto.randomUUID(),
-        speaker: speakerName,
-        original: text,
-        translated: translatedText,
-        timestamp: new Date(),
-      };
-
-      setTranscripts((prev) => [...prev.slice(-20), entry]);
+    // Play TTS for other participants' messages in user's preferred language
+    if (!isOwnTranscription) {
       setCurrentTranslation(translatedText);
       playTTS(translatedText, preferredLanguage);
-
       setTimeout(() => setCurrentTranslation(null), 3000);
-    } catch (error) {
-      console.error("[Translation] Error:", error);
     }
   });
 
@@ -123,17 +96,22 @@ export function useTranscription({
     if (!daily) return;
 
     try {
+      // Type cast needed as 'translations' is not in SDK types yet
       await daily.startTranscription({
         language: "multi",
         model: "nova-2",
         punctuate: true,
         profanity_filter: false,
-      });
+        translations: {
+          [preferredLanguage]: "*",
+        },
+      } as Parameters<typeof daily.startTranscription>[0]);
+      console.log("[Daily] Transcription started with translation to:", preferredLanguage);
     } catch (error) {
       console.error("[Daily] Failed to start transcription:", error);
       setTranscriptionStatus("error");
     }
-  }, [daily]);
+  }, [daily, preferredLanguage]);
 
   const stopTranscription = useCallback(() => {
     if (!daily) return;
