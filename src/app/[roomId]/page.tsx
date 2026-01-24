@@ -92,7 +92,13 @@ export default function RoomPage() {
             </p>
           </div>
 
-          <div className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleJoin();
+            }}
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <label className="text-sm font-medium text-black">
                 Your Name
@@ -123,7 +129,7 @@ export default function RoomPage() {
             )}
 
             <Button
-              onClick={handleJoin}
+              type="submit"
               disabled={!username.trim() || isJoining || isLoadingFingerprint}
               className="w-full bg-black text-white hover:bg-neutral-800"
             >
@@ -139,7 +145,7 @@ export default function RoomPage() {
                 </>
               )}
             </Button>
-          </div>
+          </form>
 
           <p className="text-xs text-center text-neutral-500">
             You'll hear other participants in{" "}
