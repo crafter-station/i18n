@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const targetLangName = getLanguageName(targetLanguage);
 
     const { text: translatedText } = await generateText({
-      model: groq("llama-3.1-8b-instant"),
+      model: groq("openai/gpt-oss-20b"),
       prompt: `Translate to ${targetLangName}. Only respond with the translation, nothing else:\n\n${text}`,
     });
 

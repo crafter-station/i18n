@@ -27,3 +27,33 @@ export const ActionsRequestSchema = z.object({
 });
 
 export type ActionsRequest = z.infer<typeof ActionsRequestSchema>;
+
+// Email action schema for intent detection
+export const EmailActionSchema = z.object({
+  id: z.string(),
+  type: z.literal("email"),
+  title: z.string(),
+  description: z.string(),
+  assignee: z.string(),
+  dueDate: z.string(),
+  priority: z.enum(["high", "medium", "low"]),
+  metadata: z.object({
+    recipients: z.array(z.string()),
+    subject: z.string(),
+    emailBody: z.string(),
+  }),
+});
+
+export type EmailAction = z.infer<typeof EmailActionSchema>;
+
+// Intent detection response schema
+export const IntentDetectionResponseSchema = z.object({
+  hasEmailIntent: z.boolean(),
+  confidence: z.enum(["high", "medium", "low"]),
+  action: EmailActionSchema.nullable(),
+  reasoning: z.string(),
+});
+
+export type IntentDetectionResponse = z.infer<
+  typeof IntentDetectionResponseSchema
+>;
