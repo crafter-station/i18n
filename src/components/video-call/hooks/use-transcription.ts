@@ -143,14 +143,28 @@ export function useTranscription({
         model: "nova-2",
         punctuate: true,
         profanity_filter: false,
+        includeRawResponse: true,
         translations: translationsConfig,
       } as Parameters<typeof daily.startTranscription>[0]);
       console.log(
         "[Daily] Transcription started with translations for all languages",
       );
-    } catch (error) {
-      console.error("[Daily] Failed to start transcription:", error);
-      setTranscriptionStatus("error");
+    } catch (error: unknown) {
+      // If transcription is already running (started by another participant), that's fine
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        errorMessage.toLowerCase().includes("already") ||
+        errorMessage.toLowerCase().includes("in progress")
+      ) {
+        console.log(
+          "[Daily] Transcription already running, not overriding config",
+        );
+        setTranscriptionStatus("active");
+      } else {
+        console.error("[Daily] Failed to start transcription:", error);
+        setTranscriptionStatus("error");
+      }
     }
   }, [daily]);
 
