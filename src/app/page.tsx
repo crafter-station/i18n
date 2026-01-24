@@ -5,18 +5,22 @@ import { useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 
 import { LanguageNetwork } from "@/components/language-network";
+import { useFingerprint } from "@/hooks/use-fingerprint";
 
 export default function Home() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
+  const { visitorId, isLoading: isFingerprintLoading } = useFingerprint();
 
   const handleCreateRoom = async () => {
+    if (!visitorId) return;
+
     setIsCreating(true);
     try {
       const res = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ visitorId }),
       });
 
       const data = await res.json();
@@ -53,7 +57,7 @@ export default function Home() {
           <button
             type="button"
             onClick={handleCreateRoom}
-            disabled={isCreating}
+            disabled={isCreating || isFingerprintLoading || !visitorId}
             className="text-sm font-medium bg-black text-white px-4 py-2 hover:bg-neutral-800 transition-colors disabled:opacity-50"
           >
             {isCreating ? "Creating..." : "Start Call"}
@@ -80,7 +84,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleCreateRoom}
-                disabled={isCreating}
+                disabled={isCreating || isFingerprintLoading || !visitorId}
                 className="flex items-center gap-2 bg-black text-white px-6 py-3 font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
               >
                 {isCreating ? (
@@ -171,7 +175,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleCreateRoom}
-                disabled={isCreating}
+                disabled={isCreating || isFingerprintLoading || !visitorId}
                 className="inline-flex items-center gap-2 text-sm font-medium tracking-wide uppercase hover:text-neutral-600 transition-colors pt-4"
               >
                 <span className="w-1.5 h-1.5 bg-black" />
@@ -284,7 +288,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleCreateRoom}
-                disabled={isCreating}
+                disabled={isCreating || isFingerprintLoading || !visitorId}
                 className="flex items-center gap-2 bg-black text-white px-8 py-4 font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
               >
                 {isCreating ? (

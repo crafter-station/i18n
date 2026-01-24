@@ -1,21 +1,45 @@
 import { relations } from "drizzle-orm";
-import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 
-// Rooms table
-export const rooms = pgTable("rooms", {
-  id: text("id").primaryKey(), // nanoid(10)
-  name: text("name").notNull(),
-  dailyRoomUrl: text("daily_room_url"),
-  dailyRoomName: text("daily_room_name"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  endedAt: timestamp("ended_at"),
-});
+// Existing rooms table (from database)
+export const rooms = pgTable(
+  "rooms",
+  {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    dailyRoomName: text("daily_room_name").notNull(),
+    dailyRoomUrl: text("daily_room_url").notNull(),
+    createdByFingerprint: text("created_by_fingerprint").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at"),
+  },
+  (table) => [unique("rooms_daily_room_name_unique").on(table.dailyRoomName)]
+);
 
-// Participants table
+// Existing users table (from database)
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    clerkId: text("clerk_id").notNull(),
+    email: text("email").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [unique("users_clerk_id_unique").on(table.clerkId)]
+);
+
+// NEW: Participants table for i18n app
 export const participants = pgTable("participants", {
   id: text("id").primaryKey(), // visitorId + roomId
   visitorId: text("visitor_id").notNull(),
-  roomId: text("room_id")
+  roomId: uuid("room_id")
     .notNull()
     .references(() => rooms.id, { onDelete: "cascade" }),
   username: text("username").notNull(),
@@ -25,10 +49,10 @@ export const participants = pgTable("participants", {
   leftAt: timestamp("left_at"),
 });
 
-// Transcripts table
+// NEW: Transcripts table for i18n app
 export const transcripts = pgTable("transcripts", {
   id: text("id").primaryKey(), // nanoid(12)
-  roomId: text("room_id")
+  roomId: uuid("room_id")
     .notNull()
     .references(() => rooms.id, { onDelete: "cascade" }),
   participantId: text("participant_id").notNull(),

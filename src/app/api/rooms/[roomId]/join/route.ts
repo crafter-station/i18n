@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { participants, rooms } from "@/db/schema";
-import { generateRoomId } from "@/lib/nanoid";
 
 export async function POST(
   req: Request,
@@ -12,7 +11,7 @@ export async function POST(
     const { roomId } = await params;
     const { visitorId, username, preferredLanguage, email } = await req.json();
 
-    // Check if room exists
+    // Check if room exists (roomId is uuid)
     const room = await db.query.rooms.findFirst({
       where: eq(rooms.id, roomId),
     });
@@ -44,7 +43,7 @@ export async function POST(
         },
       });
 
-    // Generate Daily.co meeting token
+    // Generate Daily.co meeting token using dailyRoomName
     const tokenRes = await fetch("https://api.daily.co/v1/meeting-tokens", {
       method: "POST",
       headers: {
@@ -53,7 +52,7 @@ export async function POST(
       },
       body: JSON.stringify({
         properties: {
-          room_name: roomId,
+          room_name: room.dailyRoomName, // Use the Daily room name, not roomId
           user_name: username,
           user_id: visitorId,
           exp: Math.floor(Date.now() / 1000) + 3600 * 2, // 2 hours
@@ -75,7 +74,7 @@ export async function POST(
     return Response.json({
       token,
       roomUrl: room.dailyRoomUrl,
-      roomName: room.name,
+      dailyRoomName: room.dailyRoomName,
     });
   } catch (error) {
     console.error("Error joining room:", error);
