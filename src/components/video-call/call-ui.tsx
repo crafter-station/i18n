@@ -176,6 +176,7 @@ export function CallUI({
         isMuted={isMuted}
         isVideoOff={isVideoOff}
         preferredLanguage={preferredLanguage}
+        roomId={roomId}
         onToggleMute={toggleMute}
         onToggleVideo={toggleVideo}
         onLeave={leaveCall}
