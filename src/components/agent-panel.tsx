@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   motion,
   useDragControls,
@@ -20,43 +20,11 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Dummy transcript data grouped by speaker
-const DUMMY_TRANSCRIPTS_BY_SPEAKER: Record<string, TranscriptEntry[]> = {
-  Maria: [
-    {
-      id: "1",
-      speaker: "Maria",
-      original: "Hola, ¿cómo están todos hoy?",
-      translated: "Hello, how is everyone today?",
-      timestamp: new Date(Date.now() - 30000),
-    },
-    {
-      id: "3",
-      speaker: "Maria",
-      original: "Sí, perfecto. Hoy vamos a discutir el nuevo proyecto.",
-      translated: "Yes, perfect. Today we will discuss the new project.",
-      timestamp: new Date(Date.now() - 10000),
-    },
-  ],
-  João: [
-    {
-      id: "2",
-      speaker: "João",
-      original: "Estou bem, obrigado! Vamos começar a reunião?",
-      translated: "I'm fine, thanks! Shall we start the meeting?",
-      timestamp: new Date(Date.now() - 20000),
-    },
-  ],
-};
-
-interface TranscriptEntry {
-  id: string;
-  speaker: string;
-  original: string;
-  translated: string;
-  timestamp: Date;
-}
+import type {
+  TranscriptEntry,
+  LiveTranscript,
+  TranscriptionStatus,
+} from "@/components/video-call/types";
 
 type TabType = "transcript" | "summary" | "chat";
 
@@ -76,9 +44,17 @@ const DEFAULT_HEIGHT = 256;
 
 interface AgentPanelProps {
   preferredLanguage: string;
+  transcripts: TranscriptEntry[];
+  liveTranscript: LiveTranscript | null;
+  transcriptionStatus: TranscriptionStatus;
 }
 
-export function AgentPanel({ preferredLanguage }: AgentPanelProps) {
+export function AgentPanel({
+  preferredLanguage,
+  transcripts,
+  liveTranscript,
+  transcriptionStatus,
+}: AgentPanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("transcript");
@@ -186,7 +162,17 @@ export function AgentPanel({ preferredLanguage }: AgentPanelProps) {
     }, 500);
   };
 
-  const speakers = Object.keys(DUMMY_TRANSCRIPTS_BY_SPEAKER);
+  // Group transcripts by speaker
+  const transcriptsBySpeaker = useMemo(() => {
+    const grouped: Record<string, TranscriptEntry[]> = {};
+    for (const t of transcripts) {
+      if (!grouped[t.speaker]) grouped[t.speaker] = [];
+      grouped[t.speaker].push(t);
+    }
+    return grouped;
+  }, [transcripts]);
+
+  const speakers = Object.keys(transcriptsBySpeaker);
 
   return (
     <>
@@ -344,10 +330,26 @@ export function AgentPanel({ preferredLanguage }: AgentPanelProps) {
 
                           {/* Transcripts */}
                           <div className="flex-1 overflow-y-auto divide-y divide-white/5">
+                            {/* Live transcript indicator */}
+                            {liveTranscript && (
+                              <div className="px-4 py-3 bg-blue-500/10 border-b border-blue-500/20">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                                  <span className="text-xs font-medium text-blue-400">
+                                    {liveTranscript.speaker}
+                                  </span>
+                                  <span className="text-[10px] text-blue-400/50">speaking...</span>
+                                </div>
+                                <p className="text-sm text-white">{liveTranscript.text}</p>
+                              </div>
+                            )}
+
+                            {/* Transcript entries */}
                             {(selectedSpeaker
-                              ? DUMMY_TRANSCRIPTS_BY_SPEAKER[selectedSpeaker] || []
-                              : Object.values(DUMMY_TRANSCRIPTS_BY_SPEAKER).flat()
+                              ? transcriptsBySpeaker[selectedSpeaker] || []
+                              : transcripts
                             )
+                              .slice()
                               .sort(
                                 (a, b) =>
                                   b.timestamp.getTime() - a.timestamp.getTime()
@@ -365,14 +367,27 @@ export function AgentPanel({ preferredLanguage }: AgentPanelProps) {
                                       {formatTime(entry.timestamp)}
                                     </span>
                                   </div>
-                                  <p className="text-xs text-white/40 line-through mb-0.5">
-                                    {entry.original}
-                                  </p>
+                                  {entry.original !== entry.translated && (
+                                    <p className="text-xs text-white/40 line-through mb-0.5">
+                                      {entry.original}
+                                    </p>
+                                  )}
                                   <p className="text-sm text-white">
                                     {entry.translated}
                                   </p>
                                 </div>
                               ))}
+
+                            {/* Empty state */}
+                            {transcripts.length === 0 && !liveTranscript && (
+                              <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <Languages className="w-8 h-8 text-white/20 mb-2" />
+                                <p className="text-sm text-white/50">Waiting for speech...</p>
+                                <p className="text-xs text-white/30 mt-1">
+                                  Translations appear here in real-time
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}

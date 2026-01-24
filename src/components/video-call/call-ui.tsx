@@ -12,8 +12,8 @@ import { Loader2 } from "lucide-react";
 import type { VideoCallProps } from "./types";
 import { useTranscription } from "./hooks/use-transcription";
 import { ParticipantTile } from "./participant-tile";
-import { TranscriptPanel } from "./transcript-panel";
 import { CallControls } from "./call-controls";
+import { AgentPanel } from "@/components/agent-panel";
 
 export function CallUI({
   roomUrl,
@@ -122,48 +122,49 @@ export function CallUI({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col relative">
-      {/* Translation toast */}
+    <div className="h-screen bg-neutral-900 flex flex-col overflow-hidden">
+      {/* Translation overlay */}
       {currentTranslation && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-white/10 backdrop-blur-xl text-white px-8 py-4 rounded-2xl max-w-xl text-center border border-white/10 shadow-2xl">
-          <p className="text-lg font-light">{currentTranslation}</p>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/80 text-white px-6 py-3 rounded-lg max-w-xl text-center animate-fade-in">
+          <p className="text-lg">{currentTranslation}</p>
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 flex gap-4 p-4 pb-0">
-        {/* Video grid */}
-        <div className="flex-1">
-          <div
-            className={`grid gap-3 h-full ${
-              participantIds.length === 0
-                ? "grid-cols-1"
-                : participantIds.length === 1
-                  ? "grid-cols-2"
-                  : "grid-cols-2 grid-rows-2"
-            }`}
-          >
-            {localParticipant && (
-              <ParticipantTile
-                sessionId={localParticipant.session_id}
-                username={username}
-                isLocal
-                preferredLanguage={preferredLanguage}
-              />
-            )}
-            {participantIds.map((id) => (
-              <ParticipantTile key={id} sessionId={id} />
-            ))}
-          </div>
-        </div>
+      {/* Video grid - takes remaining space */}
+      <div className="flex-1 p-4 pb-0 overflow-hidden">
+        <div
+          className={`grid gap-4 h-full ${
+            participantIds.length === 0
+              ? "grid-cols-1"
+              : participantIds.length === 1
+                ? "grid-cols-2"
+                : "grid-cols-2 grid-rows-2"
+          }`}
+        >
+          {/* Local participant */}
+          {localParticipant && (
+            <ParticipantTile
+              sessionId={localParticipant.session_id}
+              username={username}
+              isLocal
+              preferredLanguage={preferredLanguage}
+            />
+          )}
 
-        {/* Transcript sidebar */}
-        <TranscriptPanel
-          transcripts={transcripts}
-          liveTranscript={liveTranscript}
-          transcriptionStatus={transcriptionStatus}
-        />
+          {/* Remote participants */}
+          {participantIds.map((id) => (
+            <ParticipantTile key={id} sessionId={id} />
+          ))}
+        </div>
       </div>
+
+      {/* Floating agent panel */}
+      <AgentPanel
+        preferredLanguage={preferredLanguage}
+        transcripts={transcripts}
+        liveTranscript={liveTranscript}
+        transcriptionStatus={transcriptionStatus}
+      />
 
       {/* Controls */}
       <CallControls

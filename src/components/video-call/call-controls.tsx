@@ -23,59 +23,52 @@ export function CallControls({
   onLeave,
 }: CallControlsProps) {
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-center gap-3">
-        <ControlButton
-          isActive={isMuted}
-          onClick={onToggleMute}
-          icon={isMuted ? MicOff : Mic}
-        />
+    <div className="shrink-0 bg-neutral-800/90 backdrop-blur-sm p-4 border-t border-white/5 relative">
+      {/* Language indicator - absolute positioned so it doesn't affect centering */}
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 text-sm flex items-center gap-2">
+        <span>{getLanguageFlag(preferredLanguage)}</span>
+        <span className="hidden sm:inline">
+          Hearing in {getLanguageName(preferredLanguage)}
+        </span>
+      </div>
 
-        <ControlButton
-          isActive={isVideoOff}
-          onClick={onToggleVideo}
-          icon={isVideoOff ? VideoOff : Video}
-        />
+      {/* Centered controls */}
+      <div className="flex items-center justify-center gap-4">
+        <Button
+          variant={isMuted ? "destructive" : "secondary"}
+          size="icon"
+          onClick={onToggleMute}
+          className="w-12 h-12 rounded-full"
+        >
+          {isMuted ? (
+            <MicOff className="w-5 h-5" />
+          ) : (
+            <Mic className="w-5 h-5" />
+          )}
+        </Button>
 
         <Button
-          variant="ghost"
+          variant={isVideoOff ? "destructive" : "secondary"}
+          size="icon"
+          onClick={onToggleVideo}
+          className="w-12 h-12 rounded-full"
+        >
+          {isVideoOff ? (
+            <VideoOff className="w-5 h-5" />
+          ) : (
+            <Video className="w-5 h-5" />
+          )}
+        </Button>
+
+        <Button
+          variant="destructive"
           size="icon"
           onClick={onLeave}
-          className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
+          className="w-12 h-12 rounded-full"
         >
           <PhoneOff className="w-5 h-5" />
         </Button>
-
-        <div className="ml-6 flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-          <span className="text-lg">{getLanguageFlag(preferredLanguage)}</span>
-          <span className="text-sm text-neutral-300">
-            {getLanguageName(preferredLanguage)}
-          </span>
-        </div>
       </div>
     </div>
-  );
-}
-
-interface ControlButtonProps {
-  isActive: boolean;
-  onClick: () => void;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-function ControlButton({ isActive, onClick, icon: Icon }: ControlButtonProps) {
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onClick}
-      className={`w-12 h-12 rounded-full transition-all ${
-        isActive
-          ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-          : "bg-white/10 text-white hover:bg-white/20"
-      }`}
-    >
-      <Icon className="w-5 h-5" />
-    </Button>
   );
 }
