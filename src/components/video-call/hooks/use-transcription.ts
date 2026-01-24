@@ -8,8 +8,6 @@ import {
   useLocalParticipant,
 } from "@daily-co/daily-react";
 
-import { SUPPORTED_LANGUAGES } from "@/lib/languages";
-
 import type {
   LiveTranscript,
   TranscriptEntry,
@@ -22,59 +20,8 @@ interface UseTranscriptionOptions {
   isMuted: boolean;
 }
 
-// Helper to find translation with fallback for language code variants
-function getTranslationFromEvent(
-  translations: Record<string, string> | undefined,
-  lang: string,
-): string | null {
-  if (!translations) return null;
-
-  // Exact match (e.g., "en")
-  if (translations[lang]) return translations[lang];
-
-  // Try language variant (e.g., "en" -> "en-US", "es" -> "es-ES")
-  const variant = Object.keys(translations).find(
-    (k) => k.startsWith(`${lang}-`) || k.startsWith(`${lang}_`),
-  );
-  if (variant) return translations[variant];
-
-  // Try base language if full code provided (e.g., "en-US" -> "en")
-  const baseLang = lang.split(/[-_]/)[0];
-  if (baseLang !== lang && translations[baseLang]) {
-    return translations[baseLang];
-  }
-
-  return null;
-}
-
-// Call our translation API using Groq
-async function translateText(
-  text: string,
-  targetLanguage: string,
-): Promise<string> {
-  try {
-    const res = await fetch("/api/translate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, targetLanguage }),
-    });
-
-    if (!res.ok) {
-      console.error("[Translate] API error:", res.status);
-      return text;
-    }
-
-    const { translatedText } = await res.json();
-    return translatedText || text;
-  } catch (error) {
-    console.error("[Translate] Error:", error);
-    return text;
-  }
-}
-
 export function useTranscription({
   preferredLanguage,
-  isMuted,
 }: UseTranscriptionOptions) {
   const daily = useDaily();
   const localParticipant = useLocalParticipant();
@@ -125,31 +72,19 @@ export function useTranscription({
       return;
     }
 
+    const participant = daily?.participants()?.[participantId];
+    const speakerName = participant?.user_name || "Participant";
+
     // Only process final transcriptions for TTS (avoid duplicates)
     if (!isFinal) {
       // Show live preview with original text
-      const participant = daily?.participants()?.[participantId];
-      const speakerName = participant?.user_name || "Participant";
       setLiveTranscript({ speaker: speakerName, text });
       return;
     }
 
-    const participant = daily?.participants()?.[participantId];
-    const speakerName = participant?.user_name || "Participant";
-
-    // Try to get translation from Daily's event first
-    const translations = (event as { translations?: Record<string, string> })
-      .translations;
-    let translatedText = getTranslationFromEvent(
-      translations,
-      preferredLanguage,
-    );
-
-    // If Daily didn't provide translation, use our Groq-powered translation API
-    if (!translatedText) {
-      console.log("[Transcription] No Daily translation, using Groq API...");
-      translatedText = await translateText(text, preferredLanguage);
-    }
+    // Get translated text from Daily's translation feature (singular 'translation', not 'translations')
+    const translatedText =
+      (event as { translation?: { text?: string } }).translation?.text || text;
 
     // Debug logging
     console.log("[Transcription] Processing:", {
@@ -157,7 +92,8 @@ export function useTranscription({
       original: text.slice(0, 50),
       translated: translatedText.slice(0, 50),
       preferredLanguage,
-      usedGroq: !getTranslationFromEvent(translations, preferredLanguage),
+      hasTranslation: !!(event as { translation?: { text?: string } })
+        .translation?.text,
     });
 
     // Show translated text in live transcript
@@ -191,27 +127,26 @@ export function useTranscription({
     if (!daily) return;
 
     try {
-      // Request translations for all supported languages so each user gets their preference
-      const translationsConfig = Object.fromEntries(
-        SUPPORTED_LANGUAGES.map((lang) => [lang.code, "*"]),
-      );
-
+      // Request translation to user's preferred language only
       // Type cast needed as 'translations' is not in SDK types yet
       await daily.startTranscription({
         language: "multi",
         model: "nova-2",
         punctuate: true,
         profanity_filter: false,
-        translations: translationsConfig,
+        translations: {
+          [preferredLanguage]: "*",
+        },
       } as Parameters<typeof daily.startTranscription>[0]);
       console.log(
-        "[Daily] Transcription started with translations for all languages",
+        "[Daily] Transcription started with translation to:",
+        preferredLanguage,
       );
     } catch (error) {
       console.error("[Daily] Failed to start transcription:", error);
       setTranscriptionStatus("error");
     }
-  }, [daily]);
+  }, [daily, preferredLanguage]);
 
   const stopTranscription = useCallback(() => {
     if (!daily) return;
