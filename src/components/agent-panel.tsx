@@ -1,35 +1,38 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import {
-  motion,
-  useDragControls,
-  AnimatePresence,
-  LayoutGroup,
-} from "motion/react";
-import {
-  Sparkles,
-  MessageSquare,
-  ChevronUp,
-  ChevronDown,
-  X,
-  Languages,
-  Send,
-  GripHorizontal,
-  Users,
-  Loader2,
-  Mail,
-  ListTodo,
+  AlertCircle,
   Calendar,
   CheckCircle2,
-  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  GripHorizontal,
+  Languages,
+  ListTodo,
+  Loader2,
+  Mail,
+  MessageSquare,
+  Send,
+  Sparkles,
+  Users,
+  X,
 } from "lucide-react";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  useDragControls,
+} from "motion/react";
+
 import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import type {
-  TranscriptEntry,
   LiveTranscript,
+  TranscriptEntry,
   TranscriptionStatus,
 } from "@/components/video-call/types";
 
@@ -297,8 +300,25 @@ export function AgentPanel({
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value);
-          assistantContent += chunk;
+          const chunk = decoder.decode(value, { stream: true });
+
+          // Parse SSE lines
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr && jsonStr !== "[DONE]") {
+                try {
+                  const data = JSON.parse(jsonStr);
+                  if (data.type === "text-delta" && data.delta) {
+                    assistantContent += data.delta;
+                  }
+                } catch {
+                  // Skip non-JSON lines
+                }
+              }
+            }
+          }
         }
 
         // Add assistant message
