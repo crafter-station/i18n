@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { ArrowRight, Loader2 } from "lucide-react";
 
@@ -23,6 +23,20 @@ export default function RoomPage() {
   const [preferredLanguage, setPreferredLanguage] =
     useState<LanguageCode>("en");
   const [isJoining, setIsJoining] = useState(false);
+
+  // Load language preference from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("preferredLanguage");
+    if (stored) {
+      setPreferredLanguage(stored as LanguageCode);
+    }
+  }, []);
+
+  // Save language preference to localStorage when changed
+  const handleLanguageChange = (lang: LanguageCode) => {
+    setPreferredLanguage(lang);
+    localStorage.setItem("preferredLanguage", lang);
+  };
   const [isJoined, setIsJoined] = useState(false);
   const [roomUrl, setRoomUrl] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -119,7 +133,7 @@ export default function RoomPage() {
               </label>
               <LanguageSelector
                 value={preferredLanguage}
-                onChange={setPreferredLanguage}
+                onChange={handleLanguageChange}
                 disabled={isJoining}
               />
             </div>
@@ -131,7 +145,7 @@ export default function RoomPage() {
             <Button
               type="submit"
               disabled={!username.trim() || isJoining || isLoadingFingerprint}
-              className="w-full bg-black text-white hover:bg-neutral-800"
+              className="w-full bg-black text-white hover:bg-neutral-800 cursor-pointer"
             >
               {isJoining || isLoadingFingerprint ? (
                 <>
