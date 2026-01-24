@@ -52,10 +52,13 @@ export async function POST(
       },
       body: JSON.stringify({
         properties: {
-          room_name: room.dailyRoomName, // Use the Daily room name, not roomId
+          room_name: room.dailyRoomName,
           user_name: username,
           user_id: visitorId,
           exp: Math.floor(Date.now() / 1000) + 3600 * 2, // 2 hours
+          permissions: {
+            canAdmin: ["transcription"],
+          },
         },
       }),
     });
