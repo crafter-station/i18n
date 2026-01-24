@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+
 import {
   useDaily,
   useDailyEvent,
@@ -9,11 +10,11 @@ import {
 } from "@daily-co/daily-react";
 import { Loader2 } from "lucide-react";
 
-import type { VideoCallProps } from "./types";
+import { CallControls } from "./call-controls";
 import { useTranscription } from "./hooks/use-transcription";
 import { ParticipantTile } from "./participant-tile";
 import { TranscriptPanel } from "./transcript-panel";
-import { CallControls } from "./call-controls";
+import type { VideoCallProps } from "./types";
 
 export function CallUI({
   roomUrl,

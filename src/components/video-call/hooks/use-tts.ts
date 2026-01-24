@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useCallback, useRef } from "react";
+
+import type { LanguageCode } from "@/lib/languages";
 
 export function useTTS() {
   const audioQueueRef = useRef<string[]>([]);
@@ -36,10 +38,15 @@ export function useTTS() {
   }, []);
 
   const playTTS = useCallback(
-    async (text: string, language: string) => {
+    async (text: string, language: LanguageCode) => {
       try {
-        console.log("[TTS] Generating audio:", { text: text.slice(0, 50), language });
-        
+        console.log(
+          "[TTS] Generating audio for language:",
+          language,
+          "text:",
+          text.slice(0, 50),
+        );
+
         const res = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -54,7 +61,10 @@ export function useTTS() {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         audioQueueRef.current.push(url);
-        console.log("[TTS] Audio queued, queue size:", audioQueueRef.current.length);
+        console.log(
+          "[TTS] Audio queued, queue size:",
+          audioQueueRef.current.length,
+        );
 
         if (!isPlayingRef.current) {
           playNextAudio();
@@ -63,7 +73,7 @@ export function useTTS() {
         console.error("[TTS] Error:", error);
       }
     },
-    [playNextAudio]
+    [playNextAudio],
   );
 
   return { playTTS };
