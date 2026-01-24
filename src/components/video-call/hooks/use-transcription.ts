@@ -58,6 +58,8 @@ export function useTranscription({
 
   // Handle transcription messages
   useDailyEvent("transcription-message", async (event) => {
+    console.log("[Transcription] Event received:", event);
+
     if (!event?.text) return;
 
     const { text, participantId } = event;
@@ -66,17 +68,20 @@ export function useTranscription({
     // Get translation for user's preferred language (translations is Record<langCode, text>)
     const translations = (event as { translations?: Record<string, string> })
       .translations;
-    const translatedText = translations?.[preferredLanguage];
+    const translatedText = translations?.[preferredLanguage] ?? text;
 
-    // Check if we have a valid translation
+    // Check if we have a valid translation (different from original)
     const hasTranslation =
-      translatedText !== undefined && translatedText.length > 0;
+      translations?.[preferredLanguage] !== undefined &&
+      translations[preferredLanguage].length > 0;
 
-    if (!hasTranslation && translations) {
-      console.warn(
-        `[Transcription] No translation for "${preferredLanguage}". Available: ${Object.keys(translations).join(", ")}`,
-      );
-    }
+    console.log("[Transcription] Translation check:", {
+      preferredLanguage,
+      hasTranslation,
+      availableTranslations: translations ? Object.keys(translations) : null,
+      original: text.slice(0, 30),
+      translated: translatedText.slice(0, 30),
+    });
 
     const isOwnTranscription = participantId === localParticipant?.session_id;
     const participant = daily?.participants()?.[participantId];
@@ -88,9 +93,14 @@ export function useTranscription({
       ? `${speakerName} (You)`
       : speakerName;
 
-    // Show live transcript: translated for others, original for self
-    const liveText = isOwnTranscription ? text : (translatedText ?? text);
-    setLiveTranscript({ speaker: displayName, text: liveText });
+    // Skip own transcriptions - user should never hear themselves
+    if (isOwnTranscription) {
+      console.log("[Transcription] Skipping own transcription");
+      return;
+    }
+
+    // Show live transcript
+    setLiveTranscript({ speaker: displayName, text: translatedText });
 
     if (!isFinal) return;
 
@@ -98,27 +108,24 @@ export function useTranscription({
 
     const entry: TranscriptEntry = {
       id: crypto.randomUUID(),
-      speaker: isOwnTranscription ? displayName : speakerName,
+      speaker: speakerName,
       original: text,
-      translated: translatedText ?? text,
+      translated: translatedText,
       timestamp: new Date(),
     };
 
     setTranscripts((prev) => [...prev.slice(-20), entry]);
 
-    // Play TTS ONLY for other participants AND if we have a translation
-    if (!isOwnTranscription && hasTranslation) {
-      console.log("[Transcription] Playing TTS:", {
-        speaker: speakerName,
-        original: text.slice(0, 30),
-        translated: translatedText.slice(0, 30),
-        language: preferredLanguage,
-      });
+    // Play TTS for other participants (use translation if available, otherwise original)
+    console.log("[Transcription] Playing TTS:", {
+      speaker: speakerName,
+      text: translatedText.slice(0, 30),
+      language: preferredLanguage,
+    });
 
-      setCurrentTranslation(translatedText);
-      playTTS(translatedText, preferredLanguage);
-      setTimeout(() => setCurrentTranslation(null), 3000);
-    }
+    setCurrentTranslation(translatedText);
+    playTTS(translatedText, preferredLanguage);
+    setTimeout(() => setCurrentTranslation(null), 3000);
   });
 
   const startTranscription = useCallback(async () => {
