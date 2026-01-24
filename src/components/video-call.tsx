@@ -127,12 +127,20 @@ function CallUI({
 
   // Handle Daily.co transcription messages
   useDailyEvent("transcription-message", async (event) => {
-    if (!event?.text || !event?.is_final) return;
+    if (!event?.text) return;
 
-    const { text, session_id, user_name } = event;
+    // Check if this is final transcription (from Deepgram's raw response)
+    const isFinal = event.rawResponse?.is_final ?? true;
+    if (!isFinal) return;
+
+    const { text, participantId } = event;
 
     // Skip own transcriptions
-    if (session_id === localParticipant?.session_id) return;
+    if (participantId === localParticipant?.session_id) return;
+
+    // Get participant name from Daily
+    const participant = daily?.participants()?.[participantId];
+    const speakerName = participant?.user_name || "Unknown";
 
     // Translate to user's preferred language
     try {
@@ -144,8 +152,8 @@ function CallUI({
           fromLang: "auto",
           toLang: preferredLanguage,
           roomId,
-          participantId: session_id,
-          speakerName: user_name,
+          participantId,
+          speakerName,
         }),
       });
 
@@ -153,7 +161,7 @@ function CallUI({
 
       const entry: TranscriptEntry = {
         id: crypto.randomUUID(),
-        speaker: user_name || "Unknown",
+        speaker: speakerName,
         original: text,
         translated: translatedText,
         timestamp: new Date(),
