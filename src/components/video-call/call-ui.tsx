@@ -93,34 +93,12 @@ export function CallUI({
     console.log("[Daily] Participant left:", event?.participant?.user_name);
   });
 
-  const toggleMute = useCallback(async () => {
+  const toggleMute = useCallback(() => {
     if (!daily) return;
     const newMutedState = !isMuted;
-
-    // Stop local audio transmission to other participants
     daily.setLocalAudio(!newMutedState);
-
-    // Also disable/enable audio input entirely to stop transcription from picking up voice when muted
-    // This prevents the user's voice from being transcribed and played back via TTS
-    try {
-      if (newMutedState) {
-        // Disable audio device completely when muting
-        await daily.setInputDevicesAsync({
-          audioDeviceId: false,
-        });
-        console.log("[Daily] Audio device disabled");
-      } else {
-        // Re-enable default audio device when unmuting
-        await daily.setInputDevicesAsync({
-          audioDeviceId: null, // null means use default device
-        });
-        console.log("[Daily] Audio device re-enabled");
-      }
-    } catch (error) {
-      console.error("[Daily] Failed to toggle audio device:", error);
-    }
-
     setIsMuted(newMutedState);
+    console.log("[Daily] Mute:", newMutedState);
   }, [daily, isMuted]);
 
   const toggleVideo = useCallback(() => {
