@@ -1,35 +1,38 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import {
-  motion,
-  useDragControls,
-  AnimatePresence,
-  LayoutGroup,
-} from "motion/react";
-import {
-  Sparkles,
-  MessageSquare,
-  ChevronUp,
-  ChevronDown,
-  X,
-  Languages,
-  Send,
-  GripHorizontal,
-  Users,
-  Loader2,
-  Mail,
-  ListTodo,
+  AlertCircle,
   Calendar,
   CheckCircle2,
-  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  GripHorizontal,
+  Languages,
+  ListTodo,
+  Loader2,
+  Mail,
+  MessageSquare,
+  Send,
+  Sparkles,
+  Users,
+  X,
 } from "lucide-react";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  useDragControls,
+} from "motion/react";
+
 import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import type {
-  TranscriptEntry,
   LiveTranscript,
+  TranscriptEntry,
   TranscriptionStatus,
 } from "@/components/video-call/types";
 
