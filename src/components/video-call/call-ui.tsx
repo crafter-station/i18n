@@ -13,6 +13,8 @@ import { Loader2 } from "lucide-react";
 import { AgentPanel } from "@/components/agent-panel";
 
 import { CallControls } from "./call-controls";
+import { EmailConfirmDialog } from "./email-confirm-dialog";
+import { useIntentDetection } from "./hooks/use-intent-detection";
 import { useTranscription } from "./hooks/use-transcription";
 import { ParticipantTile } from "./participant-tile";
 import { ShareModal } from "./share-modal";
@@ -42,6 +44,13 @@ export function CallUI({
     startTranscription,
     stopTranscription,
   } = useTranscription({ preferredLanguage });
+
+  // Proactive intent detection for email actions
+  const { detectedEmail, dismissEmail } = useIntentDetection({
+    roomId,
+    transcripts,
+    enabled: !isJoining,
+  });
 
   // Join call and start transcription
   useEffect(() => {
@@ -180,6 +189,14 @@ export function CallUI({
       {showShareModal && (
         <ShareModal roomId={roomId} onClose={() => setShowShareModal(false)} />
       )}
+
+      {/* Email intent confirmation dialog */}
+      <EmailConfirmDialog
+        action={detectedEmail}
+        roomId={roomId}
+        onConfirm={dismissEmail}
+        onDismiss={dismissEmail}
+      />
     </div>
   );
 }

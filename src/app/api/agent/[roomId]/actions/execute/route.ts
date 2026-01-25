@@ -1,5 +1,7 @@
 import { sendEmail } from "@/tools/send-email";
 
+const DEFAULT_EMAIL_RECIPIENTS = ["hi@cueva.io", "cris@kebo.app"];
+
 interface ActionItem {
   id: string;
   type: "email" | "task" | "followup";
@@ -32,13 +34,10 @@ export async function POST(
 
     switch (action.type) {
       case "email": {
-        const recipients = action.metadata.recipients || [];
-        if (recipients.length === 0) {
-          return Response.json(
-            { error: "No recipients for email action" },
-            { status: 400 }
-          );
-        }
+        const recipients =
+          action.metadata.recipients && action.metadata.recipients.length > 0
+            ? action.metadata.recipients
+            : DEFAULT_EMAIL_RECIPIENTS;
 
         const result = await sendEmail({
           to: recipients,

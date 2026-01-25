@@ -257,6 +257,25 @@ export function AgentPanel({
     document.addEventListener("pointerup", handleResizeEnd);
   };
 
+  // Parse Vercel AI SDK stream format
+  const parseStreamChunk = (chunk: string): string => {
+    let text = "";
+    const lines = chunk.split("\n");
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === "text-delta" && data.delta) {
+            text += data.delta;
+          }
+        } catch {
+          // Skip malformed JSON
+        }
+      }
+    }
+    return text;
+  };
+
   // Chat submit using real AI with transcripts
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -268,6 +287,10 @@ export function AgentPanel({
       setChatMessages(newMessages);
       setInputValue("");
       setIsChatLoading(true);
+
+      // Add placeholder for assistant message
+      const assistantPlaceholder = { role: "assistant", content: "" };
+      setChatMessages([...newMessages, assistantPlaceholder]);
 
       // Send to API with transcripts
       try {
@@ -300,37 +323,24 @@ export function AgentPanel({
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
+          const chunk = decoder.decode(value);
+          const parsedText = parseStreamChunk(chunk);
+          assistantContent += parsedText;
 
-          // Parse SSE lines
-          const lines = chunk.split("\n");
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr && jsonStr !== "[DONE]") {
-                try {
-                  const data = JSON.parse(jsonStr);
-                  if (data.type === "text-delta" && data.delta) {
-                    assistantContent += data.delta;
-                  }
-                } catch {
-                  // Skip non-JSON lines
-                }
-              }
-            }
-          }
-        }
-
-        // Add assistant message
-        if (assistantContent) {
-          const assistantMessage = {
-            role: "assistant",
-            content: assistantContent,
-          };
-          setChatMessages((prev) => [...prev, assistantMessage]);
+          // Update assistant message in real-time
+          setChatMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              role: "assistant",
+              content: assistantContent,
+            };
+            return updated;
+          });
         }
       } catch (error) {
         console.error("Chat error:", error);
+        // Remove placeholder on error
+        setChatMessages(newMessages);
       } finally {
         setIsChatLoading(false);
       }
