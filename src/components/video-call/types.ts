@@ -3,6 +3,7 @@ import type { LanguageCode } from "@/lib/languages";
 export interface VideoCallProps {
   roomUrl: string;
   token: string;
+  spokenLanguage: LanguageCode;
   preferredLanguage: LanguageCode;
   username: string;
   visitorId: string;

@@ -20,6 +20,7 @@ export default function RoomPage() {
   const { visitorId, isLoading: isLoadingFingerprint } = useFingerprint();
 
   const [username, setUsername] = useState("");
+  const [spokenLanguage, setSpokenLanguage] = useState<LanguageCode>("en");
   const [preferredLanguage, setPreferredLanguage] =
     useState<LanguageCode>("en");
   const [isJoining, setIsJoining] = useState(false);
@@ -28,16 +29,20 @@ export default function RoomPage() {
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load language preference from localStorage on mount
+  // Load language preferences from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem("preferredLanguage");
-    if (stored) {
-      setPreferredLanguage(stored as LanguageCode);
-    }
+    const storedSpoken = localStorage.getItem("spokenLanguage");
+    const storedPreferred = localStorage.getItem("preferredLanguage");
+    if (storedSpoken) setSpokenLanguage(storedSpoken as LanguageCode);
+    if (storedPreferred) setPreferredLanguage(storedPreferred as LanguageCode);
   }, []);
 
-  // Save language preference to localStorage when changed
-  const handleLanguageChange = (lang: LanguageCode) => {
+  const handleSpokenLanguageChange = (lang: LanguageCode) => {
+    setSpokenLanguage(lang);
+    localStorage.setItem("spokenLanguage", lang);
+  };
+
+  const handlePreferredLanguageChange = (lang: LanguageCode) => {
     setPreferredLanguage(lang);
     localStorage.setItem("preferredLanguage", lang);
   };
@@ -81,6 +86,7 @@ export default function RoomPage() {
       <VideoCall
         roomUrl={roomUrl}
         token={token}
+        spokenLanguage={spokenLanguage}
         preferredLanguage={preferredLanguage}
         username={username}
         visitorId={visitorId}
@@ -102,7 +108,7 @@ export default function RoomPage() {
               Room {roomId.slice(0, 6)}...
             </h1>
             <p className="text-neutral-600">
-              Set your name and preferred language
+              Set your name and languages
             </p>
           </div>
 
@@ -129,11 +135,22 @@ export default function RoomPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-black">
-                I want to hear translations in
+                I will speak in
+              </label>
+              <LanguageSelector
+                value={spokenLanguage}
+                onChange={handleSpokenLanguageChange}
+                disabled={isJoining}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">
+                I want to hear in
               </label>
               <LanguageSelector
                 value={preferredLanguage}
-                onChange={handleLanguageChange}
+                onChange={handlePreferredLanguageChange}
                 disabled={isJoining}
               />
             </div>
@@ -162,8 +179,8 @@ export default function RoomPage() {
           </form>
 
           <p className="text-xs text-center text-neutral-500">
-            You'll hear other participants in{" "}
-            {getLanguageName(preferredLanguage)}
+            You'll speak in {getLanguageName(spokenLanguage)} and hear others
+            in {getLanguageName(preferredLanguage)}
           </p>
         </div>
       </div>
