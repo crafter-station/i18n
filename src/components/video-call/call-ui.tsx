@@ -23,6 +23,7 @@ import type { VideoCallProps } from "./types";
 export function CallUI({
   roomUrl,
   token,
+  spokenLanguage,
   preferredLanguage,
   username,
   roomId,
@@ -43,7 +44,10 @@ export function CallUI({
     transcriptionStatus,
     startTranscription,
     stopTranscription,
-  } = useTranscription({ preferredLanguage, username });
+    setMuted: setPalabraMuted,
+    addRemoteTrack,
+    removeRemoteTrack,
+  } = useTranscription({ spokenLanguage, preferredLanguage, username });
 
   // Proactive intent detection for email actions
   const { detectedEmail, dismissEmail } = useIntentDetection({
@@ -63,9 +67,10 @@ export function CallUI({
         // Disable auto-subscribe so we can control audio/video separately
         daily.setSubscribeToTracksAutomatically(false);
 
-        // Subscribe to video only, mute audio - users hear TTS instead
+        // Subscribe to video + audio, but we won't play raw remote audio
+        // (Palabra handles translation + TTS playback instead)
         daily.updateParticipants({
-          "*": { setSubscribedTracks: { video: true, audio: false } },
+          "*": { setSubscribedTracks: { video: true, audio: true } },
         });
 
         await startTranscription();
@@ -87,22 +92,49 @@ export function CallUI({
     };
   }, [daily, roomUrl, token, startTranscription, stopTranscription]);
 
-  // Mute audio for newly joined participants (they hear TTS instead)
+  // Feed remote audio tracks to Palabra for translation
+  useDailyEvent("track-started", (event) => {
+    if (!event) return;
+    const { participant, track } = event;
+    if (!participant || participant.local || !track || track.kind !== "audio")
+      return;
+    addRemoteTrack(participant.session_id, track);
+  });
+
+  // Clean up when remote tracks stop
+  useDailyEvent("track-stopped", (event) => {
+    if (!event) return;
+    const { participant, track } = event;
+    if (!participant || participant.local || !track || track.kind !== "audio")
+      return;
+    removeRemoteTrack(participant.session_id);
+  });
+
+  // Subscribe to audio for newly joined participants
   useDailyEvent("participant-joined", (event) => {
     const participant = event?.participant;
     if (!participant || participant.local) return;
 
     daily?.updateParticipant(participant.session_id, {
-      setSubscribedTracks: { video: true, audio: false },
+      setSubscribedTracks: { video: true, audio: true },
     });
   });
 
+  // Clean up when participants leave
+  useDailyEvent("participant-left", (event) => {
+    const participant = event?.participant;
+    if (!participant || participant.local) return;
+    removeRemoteTrack(participant.session_id);
+  });
+
+  // Mic toggle - controls both Daily.co (voice to others) and Palabra (local transcription)
   const toggleMute = useCallback(() => {
     if (!daily) return;
     const newMutedState = !isMuted;
     daily.setLocalAudio(!newMutedState);
+    setPalabraMuted(newMutedState);
     setIsMuted(newMutedState);
-  }, [daily, isMuted]);
+  }, [daily, isMuted, setPalabraMuted]);
 
   const toggleVideo = useCallback(() => {
     if (!daily) return;
