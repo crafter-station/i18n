@@ -43,7 +43,7 @@ export function CallUI({
     transcriptionStatus,
     startTranscription,
     stopTranscription,
-  } = useTranscription({ preferredLanguage });
+  } = useTranscription({ preferredLanguage, username });
 
   // Proactive intent detection for email actions
   const { detectedEmail, dismissEmail } = useIntentDetection({
