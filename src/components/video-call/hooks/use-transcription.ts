@@ -2,8 +2,6 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import type { TargetLangCode } from "@palabra-ai/translator";
-
 import { type LanguageCode, getTargetCode } from "@/lib/languages";
 
 import type {
@@ -59,7 +57,9 @@ export function useTranscription({
       // Dynamic import (client-side only, like Espik)
       const { PalabraClient } = await import("@palabra-ai/translator");
 
-      const targetCode = getTargetCode(preferredLanguage) as TargetLangCode;
+      const targetCode = getTargetCode(preferredLanguage) as Parameters<
+        typeof PalabraClient.prototype.setTranslateTo
+      >[0];
 
       const client = new PalabraClient({
         auth: { clientId, clientSecret },
