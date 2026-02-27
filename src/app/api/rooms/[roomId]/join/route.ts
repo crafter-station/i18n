@@ -11,9 +11,9 @@ export async function POST(
     const { roomId } = await params;
     const { visitorId, username, preferredLanguage, email } = await req.json();
 
-    // Check if room exists (roomId is uuid)
+    // Look up room by dailyRoomName (the short nanoid slug)
     const room = await db.query.rooms.findFirst({
-      where: eq(rooms.id, roomId),
+      where: eq(rooms.dailyRoomName, roomId),
     });
 
     if (!room) {
@@ -21,14 +21,14 @@ export async function POST(
     }
 
     // Upsert participant
-    const participantId = `${visitorId}_${roomId}`;
+    const participantId = `${visitorId}_${room.id}`;
 
     await db
       .insert(participants)
       .values({
         id: participantId,
         visitorId,
-        roomId,
+        roomId: room.id,
         username,
         preferredLanguage: preferredLanguage || "en",
         email: email || null,

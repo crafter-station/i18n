@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       .returning();
 
     return Response.json({
-      roomId: room.id,
+      roomId: room.dailyRoomName,
       dailyRoomName: room.dailyRoomName,
       url: dailyData.url,
     });
